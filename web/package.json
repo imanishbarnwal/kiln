@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "council:synth": "tsx --env-file=.env.local src/server/council-synth-worker.ts"
   },
   "dependencies": {
     "@0gfoundation/0g-ts-sdk": "1.2.1",

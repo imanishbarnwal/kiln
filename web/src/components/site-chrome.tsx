@@ -12,6 +12,7 @@ export function SiteNav() {
 
   const links: Array<{ href: string; label: string }> = [
     { href: '/market', label: 'Marketplace' },
+    { href: '/council', label: 'Council' },
     { href: '/onboard', label: 'Fire a model' },
     { href: '/profile', label: 'My iNFTs' },
     { href: '/profile/sessions', label: 'Past sessions' },
