@@ -7,8 +7,6 @@ import { LogoStampFlame } from '@/components/logo-concepts'
 
 export function SiteNav() {
   const pathname = usePathname()
-  const isActive = (href: string) =>
-    href === '/' ? pathname === '/' : pathname?.startsWith(href)
 
   const links: Array<{ href: string; label: string }> = [
     { href: '/market', label: 'Marketplace' },
@@ -17,6 +15,19 @@ export function SiteNav() {
     { href: '/profile', label: 'My iNFTs' },
     { href: '/profile/sessions', label: 'Past sessions' },
   ]
+
+  /// Pick the *longest* href that matches the current path. Without this,
+  /// /profile/sessions lights up both "My iNFTs" (/profile prefix) and
+  /// "Past sessions" (exact). The longest-prefix winner is unambiguous.
+  const activeHref = (() => {
+    if (pathname === '/') return '/'
+    const matches = links
+      .map((l) => l.href)
+      .filter((href) => pathname === href || pathname?.startsWith(href + '/') || pathname?.startsWith(href))
+      .sort((a, b) => b.length - a.length)
+    return matches[0] ?? null
+  })()
+  const isActive = (href: string) => href === activeHref
 
   return (
     <header className="relative z-10 border-b border-[var(--kiln-border-soft)]/60">
