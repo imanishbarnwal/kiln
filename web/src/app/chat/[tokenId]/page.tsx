@@ -23,6 +23,7 @@ import { useReputation } from '@/lib/use-reputation'
 import { ABIS, ADDRESSES } from '@/lib/contracts'
 import { galileo } from '@/lib/chains'
 import { usePersona } from '@/lib/use-persona'
+import { looksLikeKilnSubname, tokenForSubname, subnameForToken } from '@/lib/kiln-ens'
 
 type Listing = {
   owner: string
@@ -32,10 +33,47 @@ type Listing = {
 }
 
 export default function ChatPage({ params }: { params: Promise<{ tokenId: string }> }) {
-  const { tokenId } = use(params)
+  const { tokenId: rawSlug } = use(params)
   const { authenticated } = usePrivy()
   const { wallets } = useWallets()
   const wallet = wallets[0]
+
+  // Slug may be a numeric id (`/chat/5`) or an ENS subname (`/chat/mira.kiln.eth`
+  // or even bare `/chat/mira`). Resolve the subname client-side; once we have
+  // the numeric tokenId every downstream hook reuses it.
+  const [resolvedTokenId, setResolvedTokenId] = useState<string | null>(
+    /^\d+$/.test(rawSlug) ? rawSlug : null,
+  )
+  const [resolvingSlug, setResolvingSlug] = useState<boolean>(!/^\d+$/.test(rawSlug))
+  const [subnameForCurrent, setSubnameForCurrent] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    if (/^\d+$/.test(rawSlug)) {
+      ;(async () => {
+        const sub = await subnameForToken(rawSlug)
+        if (!cancelled) setSubnameForCurrent(sub)
+      })()
+      return () => { cancelled = true }
+    }
+    if (!looksLikeKilnSubname(rawSlug)) {
+      setResolvingSlug(false)
+      return
+    }
+    setResolvingSlug(true)
+    ;(async () => {
+      const id = await tokenForSubname(rawSlug)
+      if (cancelled) return
+      if (id) {
+        setResolvedTokenId(id.toString())
+        setSubnameForCurrent(rawSlug.toLowerCase().endsWith('.kiln.eth') ? rawSlug.toLowerCase() : `${rawSlug.toLowerCase()}.kiln.eth`)
+      }
+      setResolvingSlug(false)
+    })()
+    return () => { cancelled = true }
+  }, [rawSlug])
+
+  const tokenId = resolvedTokenId ?? '0'
 
   const readProvider = useMemo(
     () => new ethers.JsonRpcProvider('https://evmrpc-testnet.0g.ai'),
@@ -54,6 +92,7 @@ export default function ChatPage({ params }: { params: Promise<{ tokenId: string
   const [payTx, setPayTx] = useState<`0x${string}` | null>(null)
 
   useEffect(() => {
+    if (!resolvedTokenId) return
     (async () => {
       try {
         const nft = new ethers.Contract(ADDRESSES.KilnAgentNFT, ABIS.KilnAgentNFT as any, readProvider)
@@ -73,7 +112,7 @@ export default function ChatPage({ params }: { params: Promise<{ tokenId: string
         toast.error(`couldn't load listing: ${(err as Error).message}`)
       }
     })()
-  }, [tokenId, readProvider])
+  }, [tokenId, readProvider, resolvedTokenId])
 
   const iAmOwner =
     !!owner &&
@@ -206,6 +245,40 @@ export default function ChatPage({ params }: { params: Promise<{ tokenId: string
     }
   }
 
+  if (resolvingSlug) {
+    return (
+      <div className="relative min-h-dvh">
+        <SiteNav />
+        <main className="relative z-10 max-w-4xl mx-auto px-6 py-24 text-center">
+          <div className="kiln-stamp text-[var(--kiln-fg-2)] mb-3">Resolving via ENS</div>
+          <div className="kiln-display text-3xl">{rawSlug}</div>
+        </main>
+      </div>
+    )
+  }
+
+  if (!resolvedTokenId) {
+    return (
+      <div className="relative min-h-dvh">
+        <SiteNav />
+        <main className="relative z-10 max-w-4xl mx-auto px-6 py-24 text-center">
+          <div className="kiln-card kiln-ticked p-12">
+            <div className="kiln-stamp mb-3">Not found</div>
+            <div className="kiln-display text-3xl mb-2">No iNFT for <span className="kiln-display-italic text-[var(--kiln-ember-hot)]">{rawSlug}</span></div>
+            <p className="text-[var(--kiln-fg-2)] mt-4">
+              No subname matches that label on Sepolia ENS. Try a numeric tokenId or browse the marketplace.
+            </p>
+            <Link href="/market" className="inline-block mt-6">
+              <Button className="kiln-btn-ember h-10 px-6 rounded-sm font-mono text-xs tracking-widest uppercase">
+                Browse marketplace
+              </Button>
+            </Link>
+          </div>
+        </main>
+      </div>
+    )
+  }
+
   return (
     <div className="relative min-h-dvh">
       <SiteNav />
@@ -223,8 +296,16 @@ export default function ChatPage({ params }: { params: Promise<{ tokenId: string
             />
             <div className="min-w-0 flex-1">
               <div className="flex items-center justify-between flex-wrap gap-2">
-                <div className="kiln-stamp">
-                  Entry · {tokenId.toString().padStart(3, '0')} · {persona?.category ?? 'General'}
+                <div className="kiln-stamp flex items-center gap-2 flex-wrap">
+                  <span>Entry · {tokenId.toString().padStart(3, '0')} · {persona?.category ?? 'General'}</span>
+                  {subnameForCurrent && (
+                    <>
+                      <span className="text-[var(--kiln-fg-3)]">·</span>
+                      <span className="font-mono normal-case tracking-normal text-[var(--kiln-ember-hot)]">
+                        {subnameForCurrent}
+                      </span>
+                    </>
+                  )}
                 </div>
                 {iAmOwner && (
                   <span className="kiln-stamp text-[var(--kiln-success)]">

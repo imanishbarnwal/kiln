@@ -10,6 +10,7 @@ import { RepBadge } from '@/components/rep-badge'
 import { ABIS, ADDRESSES } from '@/lib/contracts'
 import { readPersonasBatch } from '@/lib/use-persona'
 import { useReputationBatch } from '@/lib/use-reputation'
+import { subnameForToken, KILN_ENS_PARENT } from '@/lib/kiln-ens'
 import type { Reputation } from '@/lib/reputation'
 
 type Listing = {
@@ -21,6 +22,7 @@ type Listing = {
   category: string
   avatar: string
   blurb: string
+  subname: string | null
 }
 
 export default function MarketPage() {
@@ -57,6 +59,10 @@ export default function MarketPage() {
         }
 
         const personaMap = await readPersonasBatch(raw.map((r) => r.tokenId))
+        const subnames = await Promise.all(
+          raw.map(async (r) => [r.tokenId.toString(), await subnameForToken(r.tokenId)] as const),
+        )
+        const subnameMap: Record<string, string | null> = Object.fromEntries(subnames)
         const out: Listing[] = raw.map((r) => {
           const p = personaMap[r.tokenId.toString()]
           return {
@@ -68,6 +74,7 @@ export default function MarketPage() {
             category: p?.category ?? 'General',
             avatar: p?.avatar ?? '',
             blurb: p?.blurb ?? 'Minted on Kiln.',
+            subname: subnameMap[r.tokenId.toString()] ?? null,
           }
         })
         setListings(out)
@@ -80,11 +87,17 @@ export default function MarketPage() {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     if (!q) return listings
+    // Strip the parent suffix so `mira.kiln.eth` matches the same listing
+    // as bare `mira`.
+    const qStripped = q.endsWith(`.${KILN_ENS_PARENT}`)
+      ? q.slice(0, q.length - KILN_ENS_PARENT.length - 1)
+      : q
     return listings.filter(
       (l) =>
         l.name.toLowerCase().includes(q) ||
         l.category.toLowerCase().includes(q) ||
-        l.blurb.toLowerCase().includes(q),
+        l.blurb.toLowerCase().includes(q) ||
+        (l.subname?.toLowerCase().includes(qStripped) ?? false),
     )
   }, [query, listings])
 
@@ -197,8 +210,16 @@ function ListingCard({
       }`}
     >
       <div className="flex items-start justify-between">
-        <div className="kiln-stamp">
-          Entry · {String(parseInt(listing.tokenId, 10)).padStart(3, '0')}
+        <div className="kiln-stamp flex items-center gap-2 flex-wrap">
+          <span>Entry · {String(parseInt(listing.tokenId, 10)).padStart(3, '0')}</span>
+          {listing.subname && (
+            <>
+              <span className="text-[var(--kiln-fg-3)]">·</span>
+              <span className="font-mono normal-case tracking-normal text-[var(--kiln-ember-hot)]">
+                {listing.subname}
+              </span>
+            </>
+          )}
         </div>
         <div className="kiln-stamp text-[var(--kiln-ember-hot)]">{listing.category}</div>
       </div>
