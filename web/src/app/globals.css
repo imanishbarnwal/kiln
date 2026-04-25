@@ -1,0 +1,370 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* =========================================================================
+   KILN · Furnace / Editorial aesthetic
+   Warm dark with ember-orange and bone-cream. Fraunces display type,
+   Geist Mono for stamped technical marks, Geist Sans for utility.
+   ========================================================================= */
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-fraunces);
+  --font-heading: var(--font-fraunces);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  /* Kiln furnace palette */
+  --kiln-bg-0:    #0B0604;   /* deepest, page */
+  --kiln-bg-1:    #140A07;   /* card base */
+  --kiln-bg-2:    #1D110B;   /* raised surface */
+  --kiln-bg-3:    #241510;   /* hovered surface */
+  --kiln-border:  #3B2417;   /* warm iron */
+  --kiln-border-soft: #2A1710;
+  --kiln-rule:    #4A2E1D;
+  --kiln-fg-0:    #F6EAD3;   /* bone cream, primary */
+  --kiln-fg-1:    #D6C2A0;   /* muted cream */
+  --kiln-fg-2:    #9A8467;   /* dim */
+  --kiln-fg-3:    #6E5A44;   /* quiet marks */
+  --kiln-ember:   #FF5A1F;   /* primary ember */
+  --kiln-ember-hot: #FFAE5A; /* lighter highlight */
+  --kiln-ember-deep: #B93A0D;
+  --kiln-gold:    #E8BB5A;   /* brass accent */
+  --kiln-danger:  #E03326;
+  --kiln-success: #7BB566;
+
+  /* Shadcn semantic tokens mapped to Kiln palette */
+  --background: var(--kiln-bg-0);
+  --foreground: var(--kiln-fg-0);
+  --card: var(--kiln-bg-1);
+  --card-foreground: var(--kiln-fg-0);
+  --popover: var(--kiln-bg-2);
+  --popover-foreground: var(--kiln-fg-0);
+  --primary: var(--kiln-ember);
+  --primary-foreground: #120703;
+  --secondary: var(--kiln-bg-2);
+  --secondary-foreground: var(--kiln-fg-0);
+  --muted: var(--kiln-bg-2);
+  --muted-foreground: var(--kiln-fg-2);
+  --accent: var(--kiln-bg-2);
+  --accent-foreground: var(--kiln-fg-0);
+  --destructive: var(--kiln-danger);
+  --border: var(--kiln-border);
+  --input: var(--kiln-border);
+  --ring: var(--kiln-ember);
+  --chart-1: var(--kiln-ember);
+  --chart-2: var(--kiln-gold);
+  --chart-3: var(--kiln-ember-hot);
+  --chart-4: var(--kiln-fg-1);
+  --chart-5: var(--kiln-fg-2);
+  --radius: 0.375rem;
+  --sidebar: var(--kiln-bg-1);
+  --sidebar-foreground: var(--kiln-fg-0);
+  --sidebar-primary: var(--kiln-ember);
+  --sidebar-primary-foreground: #120703;
+  --sidebar-accent: var(--kiln-bg-2);
+  --sidebar-accent-foreground: var(--kiln-fg-0);
+  --sidebar-border: var(--kiln-border);
+  --sidebar-ring: var(--kiln-ember);
+}
+
+.dark {
+  /* dark-mode overrides identical to :root because Kiln is always warm-dark */
+  --background: var(--kiln-bg-0);
+  --foreground: var(--kiln-fg-0);
+  --card: var(--kiln-bg-1);
+  --card-foreground: var(--kiln-fg-0);
+  --popover: var(--kiln-bg-2);
+  --popover-foreground: var(--kiln-fg-0);
+  --primary: var(--kiln-ember);
+  --primary-foreground: #120703;
+  --secondary: var(--kiln-bg-2);
+  --secondary-foreground: var(--kiln-fg-0);
+  --muted: var(--kiln-bg-2);
+  --muted-foreground: var(--kiln-fg-2);
+  --accent: var(--kiln-bg-2);
+  --accent-foreground: var(--kiln-fg-0);
+  --destructive: var(--kiln-danger);
+  --border: var(--kiln-border);
+  --input: var(--kiln-border);
+  --ring: var(--kiln-ember);
+  --sidebar: var(--kiln-bg-1);
+  --sidebar-foreground: var(--kiln-fg-0);
+  --sidebar-primary: var(--kiln-ember);
+  --sidebar-primary-foreground: #120703;
+  --sidebar-accent: var(--kiln-bg-2);
+  --sidebar-accent-foreground: var(--kiln-fg-0);
+  --sidebar-border: var(--kiln-border);
+  --sidebar-ring: var(--kiln-ember);
+}
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    background: var(--kiln-bg-0);
+    color: var(--kiln-fg-0);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  body {
+    background:
+      radial-gradient(1200px 600px at 75% -10%, rgba(255, 90, 31, 0.12), transparent 60%),
+      radial-gradient(900px 500px at -10% 110%, rgba(232, 187, 90, 0.06), transparent 60%),
+      var(--kiln-bg-0);
+    color: var(--kiln-fg-0);
+    min-height: 100dvh;
+  }
+  * {
+    @apply border-border outline-ring/50;
+  }
+  ::selection {
+    background: rgba(255, 90, 31, 0.35);
+    color: var(--kiln-fg-0);
+  }
+}
+
+/* =========================================================================
+   Utility classes bespoke to Kiln
+   ========================================================================= */
+
+/* Grain overlay · ceramic paper texture. Applied as fixed full-viewport. */
+.kiln-grain {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.045;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+}
+
+/* Ember orb · soft radial glow behind hero. */
+.kiln-ember-orb {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(70px);
+  pointer-events: none;
+  opacity: 0.55;
+  background: radial-gradient(circle at 50% 50%,
+    rgba(255, 138, 60, 0.9) 0%,
+    rgba(255, 90, 31, 0.55) 35%,
+    rgba(185, 58, 13, 0.2) 65%,
+    transparent 75%);
+}
+
+/* Tiny uppercase label used as section markers */
+.kiln-label {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--kiln-fg-2);
+}
+
+/* Thin decorative rule */
+.kiln-rule {
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    var(--kiln-rule) 15%,
+    var(--kiln-rule) 85%,
+    transparent 100%);
+}
+
+/* Ember button animation · slow warm pulse */
+@keyframes kiln-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 90, 31, 0.4), 0 8px 24px -8px rgba(255, 90, 31, 0.4); }
+  50%      { box-shadow: 0 0 0 6px rgba(255, 90, 31, 0.0), 0 10px 28px -6px rgba(255, 90, 31, 0.5); }
+}
+.kiln-btn-ember {
+  background: linear-gradient(180deg, #FF7E3F 0%, #FF5A1F 55%, #E04210 100%);
+  color: #120703;
+  border: 1px solid rgba(255, 174, 90, 0.5);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 230, 200, 0.35),
+    0 8px 20px -8px rgba(255, 90, 31, 0.4);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease;
+}
+.kiln-btn-ember:hover:not(:disabled) {
+  filter: brightness(1.05) saturate(1.05);
+  transform: translateY(-1px);
+  animation: kiln-pulse 2.2s ease-in-out infinite;
+}
+.kiln-btn-ember:disabled {
+  filter: saturate(0.5) brightness(0.7);
+  cursor: not-allowed;
+}
+
+/* Slow ember animation */
+@keyframes kiln-orb-float {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.55; }
+  50%      { transform: translate(2%, -3%) scale(1.06); opacity: 0.7; }
+}
+.kiln-ember-orb-animated { animation: kiln-orb-float 9s ease-in-out infinite; }
+
+/* Stamp / seal mark · small uppercase serif used as decoration */
+.kiln-stamp {
+  font-family: var(--font-display);
+  font-variation-settings: "opsz" 14, "SOFT" 100, "WONK" 1;
+  font-size: 0.6875rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--kiln-fg-2);
+}
+
+/* Chapter numerals · large outlined numbers used as section markers */
+.kiln-numeral {
+  font-family: var(--font-display);
+  font-variation-settings: "opsz" 144, "SOFT" 30;
+  font-weight: 300;
+  -webkit-text-stroke: 1px var(--kiln-rule);
+  color: transparent;
+  font-size: 3.5rem;
+  line-height: 1;
+}
+
+/* Display serif with soft optical */
+.kiln-display {
+  font-family: var(--font-display);
+  font-variation-settings: "opsz" 144, "SOFT" 100, "WONK" 0;
+  letter-spacing: -0.03em;
+  font-weight: 400;
+}
+.kiln-display-italic {
+  font-style: italic;
+  font-variation-settings: "opsz" 144, "SOFT" 100, "WONK" 1;
+}
+
+/* Ember glowing dot */
+.kiln-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--kiln-ember);
+  box-shadow: 0 0 10px 2px rgba(255, 90, 31, 0.7);
+  display: inline-block;
+}
+.kiln-dot-live { animation: kiln-dot-pulse 1.6s ease-in-out infinite; }
+@keyframes kiln-dot-pulse {
+  0%, 100% { box-shadow: 0 0 10px 2px rgba(255, 90, 31, 0.7); }
+  50%      { box-shadow: 0 0 14px 4px rgba(255, 90, 31, 1.0); }
+}
+
+/* Fired-ceramic card treatment */
+.kiln-card {
+  background:
+    linear-gradient(180deg, rgba(255, 174, 90, 0.02) 0%, transparent 50%),
+    var(--kiln-bg-1);
+  border: 1px solid var(--kiln-border-soft);
+  border-radius: 6px;
+  position: relative;
+  transition: border-color 180ms ease, transform 180ms ease, background 180ms ease;
+}
+.kiln-card:hover {
+  border-color: var(--kiln-border);
+  background:
+    linear-gradient(180deg, rgba(255, 174, 90, 0.04) 0%, transparent 50%),
+    var(--kiln-bg-2);
+}
+.kiln-card-hot:hover {
+  border-color: var(--kiln-ember-deep);
+  box-shadow: 0 0 0 1px rgba(255, 90, 31, 0.25);
+}
+
+/* Corner tick decorations for editorial panels */
+.kiln-ticked {
+  position: relative;
+}
+.kiln-ticked::before,
+.kiln-ticked::after {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border: 1px solid var(--kiln-rule);
+  top: -1px;
+}
+.kiln-ticked::before { left: -1px; border-right: 0; border-bottom: 0; }
+.kiln-ticked::after  { right: -1px; border-left: 0; border-bottom: 0; }
+
+/* Staggered page reveal for hero */
+@keyframes kiln-rise {
+  0%   { opacity: 0; transform: translateY(14px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.kiln-rise { animation: kiln-rise 900ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+
+/* Input ring polish */
+input, textarea {
+  font-family: var(--font-sans);
+}
+input:focus-visible, textarea:focus-visible {
+  outline: 1px solid var(--kiln-ember);
+  outline-offset: 1px;
+}
+
+/* Shared Kiln input treatment */
+.kiln-input {
+  background: var(--kiln-bg-1) !important;
+  border: 1px solid var(--kiln-border-soft) !important;
+  color: var(--kiln-fg-0) !important;
+  border-radius: 2px !important;
+  font-size: 0.95rem;
+  padding-left: 0.875rem !important;
+  padding-right: 0.875rem !important;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+.kiln-input:hover {
+  border-color: var(--kiln-border) !important;
+}
+.kiln-input:focus, .kiln-input:focus-visible {
+  border-color: var(--kiln-ember) !important;
+  box-shadow: 0 0 0 3px rgba(255, 90, 31, 0.12) !important;
+}
+.kiln-input::placeholder {
+  color: var(--kiln-fg-3);
+}
