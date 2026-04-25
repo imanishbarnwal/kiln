@@ -1,0 +1,6 @@
+{
+  "PrivateKeyPath": "private-synth.pem",
+  "Peers": ["tls://127.0.0.1:9101"],
+  "Listen": [],
+  "api_port": 9112
+}

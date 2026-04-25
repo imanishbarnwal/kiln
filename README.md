@@ -31,6 +31,7 @@ Built end-to-end on the **0G** stack: Storage for encrypted artifacts, Compute f
   - [Transfer](#transfer)
 - [The single question that matters](#the-single-question-that-matters-how-does-the-chat-know-who-it-is)
 - [ENS subnames · iNFTs you can name](#ens-subnames--infts-you-can-name)
+- [Council mode · two AXL nodes, one verdict](#council-mode--two-axl-nodes-one-verdict)
 - [Tech stack](#tech-stack)
 - [Repo layout](#repo-layout)
 - [Smart contracts](#smart-contracts)
@@ -161,6 +162,39 @@ What that buys the rest of the app:
 - `/chat/mira.kiln.eth` and `/chat/mira` both resolve via the registrar's `subnodeToken` mapping and route to the canonical numeric tokenId. Bare numbers (`/chat/5`) still work.
 - The marketplace search box accepts subnames (with or without the `.kiln.eth` suffix) and matches on the same label that's stored on chain.
 - Wallet → name resolution for the app's own UI (the Transfer modal, the rep card, the chat masthead) still uses **mainnet ENS** through the existing `lib/ens.ts` reverse-lookup helper. The two namespaces don't conflict.
+
+## Council mode · two AXL nodes, one verdict
+
+`/council` lets a student ask the same question to multiple coaches and watch a synthesizer combine the replies into a single verdict. The synthesis runs on a different process behind the **Gensyn AXL** peer-to-peer mesh, so the work is provably off-orchestrator · the architecture is unchanged whether both nodes are on `127.0.0.1` (the demo box) or on two separate machines on the public internet.
+
+Two AXL nodes back the flow:
+
+| Node  | API bridge          | Holds                                                  |
+|-------|---------------------|--------------------------------------------------------|
+| coach | `127.0.0.1:9102`    | The Next orchestrator on the same machine talks to it |
+| synth | `127.0.0.1:9112`    | A standalone synth daemon (`pnpm council:synth`)      |
+
+Each node has a persistent ed25519 keypair · its peer id is the hex of the public key. Messages are JSON envelopes `{ kind, queryId, payload }` shipped through the encrypted Yggdrasil + gVisor TCP transport that AXL provides.
+
+End-to-end of one Convene click:
+
+1. Browser POSTs `{ tokenIds, question }` to `/api/council`.
+2. The route reads each picked iNFT's persona from `dataDescriptions[0]` on chain and runs inference per coach against 0G Compute in parallel.
+3. The route packs the per-coach replies into one envelope of kind `council/synthesize` and ships it to the synth peer over `coach.localhost:9102/send`.
+4. `web/src/server/council-synth-worker.ts`, polling `synth.localhost:9112/recv` in a separate process, picks the envelope up, runs a synthesis prompt against 0G Compute (Qwen 2.5 7B) that asks for a 6-sentence verdict ending with `Verdict: …`.
+5. The synth worker ships a `council/result` envelope back over `synth.localhost:9112/send` to the coach peer id.
+6. The orchestrator's long-poll on `coach.localhost:9102/recv` matches the `queryId` and returns both the per-coach replies and the synthesized verdict to the browser.
+
+Run order locally:
+
+```bash
+cd axl && ./start.sh                # boot both AXL nodes
+cd web && pnpm council:synth        # synth daemon
+cd web && pnpm dev                  # Next orchestrator
+# open http://localhost:3000/council
+```
+
+What this proves about the AXL transport: the synthesis call **never** appears in the orchestrator's process · it lands in the synth worker, which only knows how to reach the orchestrator through AXL's mesh routing. There is no shared Redis, no localhost socket, no shared database. Move the synth machine to another datacenter and only the AXL `Peers` config changes.
 
 ## Tech stack
 

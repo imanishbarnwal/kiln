@@ -1,0 +1,6 @@
+{
+  "PrivateKeyPath": "private-coach.pem",
+  "Peers": [],
+  "Listen": ["tls://127.0.0.1:9101"],
+  "api_port": 9102
+}
