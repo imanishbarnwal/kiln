@@ -129,12 +129,11 @@ export function SiteFooter() {
           <div className="kiln-label">Workshop</div>
           <ul className="text-[var(--kiln-fg-1)] space-y-1 font-mono text-xs">
             <li>Galileo · chainId 16602</li>
-            <li>Aristotle · chainId 16661</li>
           </ul>
         </div>
       </div>
       <div className="max-w-6xl mx-auto px-6 pb-8 flex items-center justify-between">
-        <span className="kiln-stamp">Kiln · MMXXVI · Ember &amp; Bone</span>
+        <span className="kiln-stamp">Kiln · Ember &amp; Bone</span>
         <span className="kiln-stamp hidden md:inline">Fired with patience</span>
       </div>
     </footer>
