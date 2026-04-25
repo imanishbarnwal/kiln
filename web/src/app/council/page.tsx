@@ -23,9 +23,9 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { ethers } from 'ethers'
 import { toast } from 'sonner'
+import { useWallets } from '@privy-io/react-auth'
 import { SiteNav, SiteFooter } from '@/components/site-chrome'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { KilnAvatar } from '@/components/kiln-avatar'
 import { ABIS, ADDRESSES } from '@/lib/contracts'
 import { readPersonasBatch } from '@/lib/use-persona'
@@ -41,10 +41,13 @@ type CoachReply = {
   name: string
   category: string
   text: string
+  pricePerSessionWei: string
+  listingActive: boolean
 }
 
 type Synthesis = {
   text: string
+  bestFitTokenId: string | null
   provider: string
   model: string
 }
@@ -55,16 +58,47 @@ type CouncilResponse = {
   synthesis: Synthesis
 }
 
+/// localStorage key for tracking which coaches a wallet has previewed via
+/// Council. We use this to render a subtle '✓ Previewed' chip on cards
+/// the user already evaluated · pure UX hint, no payment gating yet.
+const PREVIEWED_KEY = (wallet: string) => `kiln.council.previewed.${wallet.toLowerCase()}`
+
+function loadPreviewed(wallet: string | undefined): Set<string> {
+  if (!wallet || typeof window === 'undefined') return new Set()
+  try {
+    const raw = window.localStorage.getItem(PREVIEWED_KEY(wallet))
+    if (!raw) return new Set()
+    return new Set(JSON.parse(raw) as string[])
+  } catch {
+    return new Set()
+  }
+}
+
+function savePreviewed(wallet: string | undefined, set: Set<string>) {
+  if (!wallet || typeof window === 'undefined') return
+  try {
+    window.localStorage.setItem(PREVIEWED_KEY(wallet), JSON.stringify(Array.from(set)))
+  } catch {}
+}
+
 const MIN_PICK = 2
 const MAX_PICK = 4
 
 export default function CouncilPage() {
+  const { wallets } = useWallets()
+  const wallet = wallets[0]
+
   const [listings, setListings] = useState<Listing[]>([])
   const [picked, setPicked] = useState<Set<string>>(new Set())
   const [question, setQuestion] = useState('')
   const [busy, setBusy] = useState(false)
   const [result, setResult] = useState<CouncilResponse | null>(null)
   const [phase, setPhase] = useState<'idle' | 'inference' | 'mesh' | 'synthesis' | 'done'>('idle')
+  const [previewed, setPreviewed] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
+    setPreviewed(loadPreviewed(wallet?.address))
+  }, [wallet?.address])
 
   const readProvider = useMemo(
     () => new ethers.JsonRpcProvider('https://evmrpc-testnet.0g.ai'),
@@ -138,8 +172,14 @@ export default function CouncilPage() {
       phaseTimers.forEach(clearTimeout)
       const json = await res.json()
       if (!res.ok) throw new Error(json.error ?? 'council failed')
-      setResult(json as CouncilResponse)
+      const response = json as CouncilResponse
+      setResult(response)
       setPhase('done')
+      // Mark every coach in this convene as previewed for this wallet.
+      const next = new Set(previewed)
+      for (const r of response.replies) next.add(r.tokenId)
+      setPreviewed(next)
+      savePreviewed(wallet?.address, next)
     } catch (err: unknown) {
       toast.error((err as Error).message ?? 'council failed')
       setPhase('idle')
@@ -186,6 +226,7 @@ export default function CouncilPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {listings.map((l) => {
               const selected = picked.has(l.tokenId)
+              const seen = previewed.has(l.tokenId)
               return (
                 <button
                   key={l.tokenId}
@@ -202,7 +243,14 @@ export default function CouncilPage() {
                     size={44}
                   />
                   <div className="min-w-0 flex-1">
-                    <div className="kiln-stamp">iNFT · {l.tokenId.padStart(3, '0')}</div>
+                    <div className="kiln-stamp flex items-center gap-2">
+                      <span>iNFT · {l.tokenId.padStart(3, '0')}</span>
+                      {seen && (
+                        <span className="text-[var(--kiln-fg-3)] normal-case tracking-normal text-[0.6875rem]">
+                          ✓ previewed
+                        </span>
+                      )}
+                    </div>
                     <div className="kiln-display text-base truncate">{l.persona.name}</div>
                     <div className="text-xs text-[var(--kiln-fg-2)]">{l.persona.category}</div>
                   </div>
@@ -250,26 +298,63 @@ export default function CouncilPage() {
             <div>
               <div className="kiln-label mb-3">Per-coach replies</div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {result.replies.map((r) => (
-                  <div key={r.tokenId} className="kiln-card kiln-card-hot p-5">
-                    <div className="flex items-center gap-3 mb-3">
-                      <KilnAvatar
-                        tokenId={r.tokenId}
-                        name={r.name}
-                        category={r.category}
-                        reputation={0}
-                        size={40}
-                      />
-                      <div className="min-w-0 flex-1">
-                        <div className="kiln-stamp">iNFT · {r.tokenId.padStart(3, '0')} · {r.category}</div>
-                        <div className="kiln-display text-lg truncate">{r.name}</div>
+                {result.replies.map((r) => {
+                  const isBestFit = result.synthesis.bestFitTokenId === r.tokenId
+                  const priceWei = BigInt(r.pricePerSessionWei)
+                  return (
+                    <div
+                      key={r.tokenId}
+                      className={`kiln-card p-5 ${isBestFit ? 'kiln-card-hot ring-1 ring-[var(--kiln-ember-hot)]' : 'kiln-card-hot'}`}
+                    >
+                      <div className="flex items-center gap-3 mb-3">
+                        <KilnAvatar
+                          tokenId={r.tokenId}
+                          name={r.name}
+                          category={r.category}
+                          reputation={0}
+                          size={40}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="kiln-stamp flex items-center gap-2 flex-wrap">
+                            <span>iNFT · {r.tokenId.padStart(3, '0')} · {r.category}</span>
+                            {isBestFit && (
+                              <span className="font-mono normal-case tracking-normal text-[var(--kiln-ember-hot)]">
+                                · best fit
+                              </span>
+                            )}
+                          </div>
+                          <div className="kiln-display text-lg truncate">{r.name}</div>
+                        </div>
+                      </div>
+                      <p className="text-sm text-[var(--kiln-fg-1)] leading-relaxed whitespace-pre-wrap">
+                        {r.text}
+                      </p>
+                      <div className="mt-5 flex items-center justify-between gap-3 border-t border-[var(--kiln-border-soft)] pt-4">
+                        <div className="text-xs font-mono text-[var(--kiln-fg-2)]">
+                          {r.listingActive && priceWei > 0n ? (
+                            <>
+                              <span className="kiln-label normal-case tracking-[0.18em] text-[var(--kiln-fg-3)] mr-2">per session</span>
+                              <span className="text-[var(--kiln-ember-hot)]">{ethers.formatEther(priceWei)} OG</span>
+                            </>
+                          ) : (
+                            <span className="text-[var(--kiln-fg-3)]">Not listed for rent yet</span>
+                          )}
+                        </div>
+                        {r.listingActive && priceWei > 0n && (
+                          <Link href={`/chat/${r.tokenId}`}>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 px-3 rounded-sm border-[var(--kiln-border)] bg-transparent hover:bg-[var(--kiln-bg-2)] text-[var(--kiln-fg-1)] hover:text-[var(--kiln-fg-0)] font-mono text-[0.6875rem] tracking-widest uppercase"
+                            >
+                              Book session →
+                            </Button>
+                          </Link>
+                        )}
                       </div>
                     </div>
-                    <p className="text-sm text-[var(--kiln-fg-1)] leading-relaxed whitespace-pre-wrap">
-                      {r.text}
-                    </p>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
 
@@ -279,6 +364,35 @@ export default function CouncilPage() {
                 <p className="text-base text-[var(--kiln-fg-0)] leading-relaxed whitespace-pre-wrap">
                   {result.synthesis.text}
                 </p>
+
+                {/* Best-fit conversion CTA · the synth has already named the
+                    iNFT whose reply was the strongest fit. We surface it
+                    prominently with a one-click "Book a private session"
+                    so Council acts as the discovery layer that funnels
+                    into a paid 1-on-1. */}
+                {(() => {
+                  const bestFit = result.synthesis.bestFitTokenId
+                    ? result.replies.find((r) => r.tokenId === result.synthesis.bestFitTokenId)
+                    : null
+                  if (!bestFit || !bestFit.listingActive || BigInt(bestFit.pricePerSessionWei) === 0n) return null
+                  return (
+                    <div className="mt-5 flex items-center justify-between gap-3 border-t border-[var(--kiln-border-soft)] pt-4 flex-wrap">
+                      <div className="text-sm">
+                        <span className="kiln-label normal-case tracking-[0.18em] text-[var(--kiln-fg-3)] mr-2">best fit</span>
+                        <span className="kiln-display-italic text-[var(--kiln-ember-hot)]">{bestFit.name}</span>
+                        <span className="text-[var(--kiln-fg-3)] font-mono text-xs ml-3">
+                          {ethers.formatEther(BigInt(bestFit.pricePerSessionWei))} OG / session
+                        </span>
+                      </div>
+                      <Link href={`/chat/${bestFit.tokenId}`}>
+                        <Button className="kiln-btn-ember h-10 px-5 rounded-sm font-mono text-xs tracking-widest uppercase">
+                          Book session with {bestFit.name.split(/\s+/).slice(-1)[0]} →
+                        </Button>
+                      </Link>
+                    </div>
+                  )
+                })()}
+
                 {(result.synthesis.provider || result.synthesis.model) && (
                   <div className="mt-5 flex items-center gap-3 flex-wrap text-xs font-mono text-[var(--kiln-fg-2)] border-t border-[var(--kiln-border-soft)] pt-4">
                     <span className="kiln-label normal-case tracking-[0.18em] text-[var(--kiln-fg-3)]">synth</span>
@@ -291,9 +405,9 @@ export default function CouncilPage() {
                 )}
               </div>
               <div className="mt-4 text-xs font-mono text-[var(--kiln-fg-2)]">
-                Want a private 1-on-1 with one of these coaches?{' '}
+                Want a different voice?{' '}
                 <Link href="/market" className="text-[var(--kiln-ember-hot)] hover:underline">
-                  Open the marketplace →
+                  Browse the full marketplace →
                 </Link>
               </div>
             </div>

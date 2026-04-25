@@ -50,6 +50,10 @@ Multiple expert coaches just answered the same student question. Your job:
 2. Find genuine agreement, surface real disagreement.
 3. Produce a single paragraph (max 6 sentences) that the student can act on.
 4. End with a one-line verdict prefixed exactly with "Verdict: ".
+5. After the verdict, on a new line, output exactly one line of the form
+   "BestFit: <tokenId>" naming the iNFT whose reply was the strongest fit
+   for the student's actual question. Pick from the iNFT IDs labelled in
+   the input. If two are tied, pick the one with the most concrete advice.
 
 Never repeat the question. Never restate the coaches' replies verbatim.
 Never break character into "as an AI". Speak in the same direct register as
@@ -68,6 +72,29 @@ async function buildSynthesisMessages(req: SynthesisRequest): Promise<ChatMessag
   ]
 }
 
+/// Pull the BestFit tag out of the synth's reply and strip the tag from
+/// the human-readable verdict. The synth is told to emit
+///   Verdict: …
+///   BestFit: <tokenId>
+/// but a fragile model can drift · we accept any line that looks like
+/// "best fit" + a number, and only keep tokenIds that were actually in
+/// the request (so a hallucinated id never reaches the client).
+function extractBestFit(raw: string, validIds: string[]): { text: string; bestFitTokenId: string | null } {
+  const lines = raw.split(/\r?\n/)
+  const idSet = new Set(validIds.map((s) => s.toString()))
+  let bestFitTokenId: string | null = null
+  const kept: string[] = []
+  for (const line of lines) {
+    const m = line.match(/best\s*fit\s*[:=]\s*#?(\d+)/i)
+    if (m && idSet.has(m[1])) {
+      bestFitTokenId = m[1]
+      continue
+    }
+    kept.push(line)
+  }
+  return { text: kept.join('\n').trim(), bestFitTokenId }
+}
+
 async function handle(envelope: { kind: string; queryId: string; payload: SynthesisRequest }) {
   const t0 = Date.now()
   console.log(`[synth] ← ${envelope.kind} ${envelope.queryId} · ${envelope.payload.replies.length} replies`)
@@ -84,12 +111,14 @@ async function handle(envelope: { kind: string; queryId: string; payload: Synthe
       attempts: [] as { provider: string; status?: number; note: string }[],
     }
   }
+  const validIds = envelope.payload.replies.map((r) => r.tokenId)
+  const { text, bestFitTokenId } = extractBestFit(result.text, validIds)
   await axlSend(SYNTH_NODE, COACH_PEER_ID, {
     kind: 'council/result',
     queryId: envelope.queryId,
-    payload: { text: result.text, provider: result.provider, model: result.model },
+    payload: { text, bestFitTokenId, provider: result.provider, model: result.model },
   })
-  console.log(`[synth] → council/result ${envelope.queryId} · ${Date.now() - t0}ms`)
+  console.log(`[synth] → council/result ${envelope.queryId} · ${Date.now() - t0}ms · bestFit=${bestFitTokenId ?? 'none'}`)
 }
 
 async function main() {

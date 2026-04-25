@@ -24,15 +24,20 @@ type CoachReply = {
   name: string
   category: string
   text: string
+  /// Wei-denominated per-session price from the on-chain marketplace listing.
+  /// '0' if the iNFT is not listed; the UI hides the Book CTA in that case.
+  pricePerSessionWei: string
+  listingActive: boolean
 }
 
 type SynthesisRequest = {
   query: string
-  replies: CoachReply[]
+  replies: Array<{ tokenId: string; name: string; category: string; text: string }>
 }
 
 type SynthesisResult = {
   text: string
+  bestFitTokenId: string | null
   provider: string
   model: string
 }
@@ -58,47 +63,67 @@ export async function POST(req: NextRequest) {
     const { tokenIds, question } = Body.parse(await req.json())
     const queryId = newQueryId()
 
-    // 1) Read every coach's persona from chain in parallel.
+    // 1) Read every coach's persona AND market listing from chain in parallel.
+    //    The listing tells us the per-session price so the UI can render
+    //    a "Book session · X OG" CTA on each reply card without a second
+    //    round-trip.
     const provider = new ethers.JsonRpcProvider(process.env.ZG_RPC_URL!)
     const nft = new ethers.Contract(ADDRESSES.KilnAgentNFT, ABIS.KilnAgentNFT as any, provider)
-    const personas = await Promise.all(
+    const market = new ethers.Contract(ADDRESSES.KilnMarket, ABIS.KilnMarket as any, provider)
+    const enriched = await Promise.all(
       tokenIds.map(async (id) => {
         const tokenId = BigInt(id)
-        const descs: string[] = await nft.dataDescriptionsOf(tokenId).catch(() => [] as string[])
-        return { tokenId: tokenId.toString(), persona: resolvePersona(tokenId.toString(), descs) }
+        const [descs, listing] = await Promise.all([
+          nft.dataDescriptionsOf(tokenId).catch(() => [] as string[]),
+          market.listings(tokenId).catch(() => null),
+        ])
+        const persona = resolvePersona(tokenId.toString(), descs as string[])
+        const pricePerSessionWei: bigint = listing ? ((listing as any).pricePerSession ?? (listing as any)[1] ?? 0n) : 0n
+        const listingActive: boolean = listing ? Boolean((listing as any).active ?? (listing as any)[4]) : false
+        return { tokenId: tokenId.toString(), persona, pricePerSessionWei, listingActive }
       }),
     )
 
     // 2) Run inference for every coach in parallel.
     const replies: CoachReply[] = await Promise.all(
-      personas.map(async ({ tokenId, persona }) => {
+      enriched.map(async ({ tokenId, persona, pricePerSessionWei, listingActive }) => {
         const messages: ChatMessage[] = [
           { role: 'system', content: persona.systemPrompt },
           { role: 'user', content: question },
         ]
+        const base = {
+          tokenId,
+          name: persona.name,
+          category: persona.category,
+          pricePerSessionWei: pricePerSessionWei.toString(),
+          listingActive,
+        }
         try {
           const r = await runOneShot(messages)
-          return { tokenId, name: persona.name, category: persona.category, text: r.text }
+          return { ...base, text: r.text }
         } catch (err: unknown) {
-          return {
-            tokenId,
-            name: persona.name,
-            category: persona.category,
-            text: `_(${persona.name} is offline · ${(err as Error).message})_`,
-          }
+          return { ...base, text: `_(${persona.name} is offline · ${(err as Error).message})_` }
         }
       }),
     )
 
     // 3) Send the synthesis envelope to the synth node over AXL.
+    //    Strip the price/listing fields out · the synth only needs name +
+    //    category + text to do its job, no point bloating the envelope.
+    const synthReplies = replies.map((r) => ({
+      tokenId: r.tokenId,
+      name: r.name,
+      category: r.category,
+      text: r.text,
+    }))
     await axlSend(COACH_NODE, SYNTH_PEER_ID, {
       kind: 'council/synthesize',
       queryId,
-      payload: { query: question, replies } as SynthesisRequest,
+      payload: { query: question, replies: synthReplies } as SynthesisRequest,
     })
 
     // 4) Block until the synth node sends back a result.
-    let synthesis: SynthesisResult | null = null
+    let synthesis: SynthesisResult
     try {
       const env = await axlWaitFor<SynthesisResult>(
         COACH_NODE,
@@ -109,6 +134,7 @@ export async function POST(req: NextRequest) {
     } catch (err: unknown) {
       synthesis = {
         text: `_(synthesizer node did not respond · ${(err as Error).message})_`,
+        bestFitTokenId: null,
         provider: '',
         model: '',
       }
