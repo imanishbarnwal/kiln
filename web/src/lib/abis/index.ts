@@ -349,6 +349,29 @@ export const ABIS = {
     },
     {
       "type": "function",
+      "name": "refine",
+      "inputs": [
+        {
+          "name": "tokenId",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "proofs",
+          "type": "bytes[]",
+          "internalType": "bytes[]"
+        },
+        {
+          "name": "dataDescriptions",
+          "type": "string[]",
+          "internalType": "string[]"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
       "name": "setApprovalForAll",
       "inputs": [
         {

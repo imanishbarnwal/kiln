@@ -46,9 +46,9 @@ All three Kiln contracts are live on the **0G Galileo testnet** (chain id `16602
 
 | Contract | Address | Explorer |
 |---|---|---|
-| `KilnAgentNFT` (ERC-7857) | `0x2FdDb8e171d15362f9A6f2B5Fde3990b3B9Ce0BE` | [view](https://chainscan-galileo.0g.ai/address/0x2FdDb8e171d15362f9A6f2B5Fde3990b3B9Ce0BE) |
-| `KilnMarket` | `0xbd55D3bB25Ac799d3E463b6945C570045aC1a90a` | [view](https://chainscan-galileo.0g.ai/address/0xbd55D3bB25Ac799d3E463b6945C570045aC1a90a) |
-| `KilnMockVerifier` (demo) | `0x48355a8897F13b432a321dc530AEFCf77B686698` | [view](https://chainscan-galileo.0g.ai/address/0x48355a8897F13b432a321dc530AEFCf77B686698) |
+| `KilnAgentNFT` (ERC-7857) | `0x613c3c4a75953c95affda3b181d0a0198bc7d811` | [view](https://chainscan-galileo.0g.ai/address/0x613c3c4a75953c95affda3b181d0a0198bc7d811) |
+| `KilnMarket` | `0x37fe0b75dae90ee8d844125373b1a2127ff7c67d` | [view](https://chainscan-galileo.0g.ai/address/0x37fe0b75dae90ee8d844125373b1a2127ff7c67d) |
+| `KilnMockVerifier` (demo) | `0x2fc379c08632792bf701a4d46309004cc103c123` | [view](https://chainscan-galileo.0g.ai/address/0x2fc379c08632792bf701a4d46309004cc103c123) |
 
 The marketplace is seeded with coaches across Chess, Wellness, Startup, Languages, and Math. Every listed token is queryable with `KilnAgentNFT.dataDescriptionsOf(tokenId)` · the persona (name, category, blurb, system prompt) is committed on chain, not in a database.
 
