@@ -139,4 +139,52 @@ contract KilnAgentNFTTest is Test {
 
         assertEq(nft.dataHashesOf(tokenId)[0], newHash);
     }
+
+    function test_refine_changesBothHashesAndDescriptions() public {
+        bytes32 oldHash = keccak256("blob-8-old");
+        uint256 tokenId = _mintTo(alice, oldHash);
+        // mint() seeded a "encrypted-model-blob" description; verify that's there
+        assertEq(nft.dataDescriptionsOf(tokenId)[0], "encrypted-model-blob");
+
+        bytes32 newHash = keccak256("blob-8-new");
+        bytes[] memory proofs = new bytes[](1);
+        proofs[0] = abi.encodePacked(newHash);
+        string[] memory newDesc = new string[](1);
+        newDesc[0] = "kiln:v1:{\"name\":\"GM Mira v2\"}";
+
+        vm.prank(alice);
+        nft.refine(tokenId, proofs, newDesc);
+
+        assertEq(nft.dataHashesOf(tokenId)[0], newHash);
+        assertEq(nft.dataDescriptionsOf(tokenId)[0], newDesc[0]);
+    }
+
+    function test_refine_revertsWhenNotOwner() public {
+        bytes32 h = keccak256("blob-9");
+        uint256 tokenId = _mintTo(alice, h);
+
+        bytes[] memory proofs = new bytes[](1);
+        proofs[0] = abi.encodePacked(h);
+        string[] memory desc = new string[](1);
+        desc[0] = "anything";
+
+        vm.prank(bob);
+        vm.expectRevert(bytes("KilnAgentNFT: not owner"));
+        nft.refine(tokenId, proofs, desc);
+    }
+
+    function test_refine_revertsOnDescriptionLengthMismatch() public {
+        bytes32 h = keccak256("blob-10");
+        uint256 tokenId = _mintTo(alice, h);
+
+        bytes[] memory proofs = new bytes[](1);
+        proofs[0] = abi.encodePacked(h);
+        string[] memory desc = new string[](2);
+        desc[0] = "a";
+        desc[1] = "b"; // length 2 vs proofs length 1
+
+        vm.prank(alice);
+        vm.expectRevert(bytes("KilnAgentNFT: descriptions length mismatch"));
+        nft.refine(tokenId, proofs, desc);
+    }
 }

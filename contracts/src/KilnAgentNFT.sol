@@ -232,6 +232,46 @@ contract KilnAgentNFT is IERC7857, IERC7857Metadata {
         emit Updated(tokenId, oldDataHashes, newDataHashes);
     }
 
+    /// @notice Refine an iNFT's persona by replacing both data hashes AND
+    ///         the human-readable descriptions in one tx. Used by coaches
+    ///         to evolve their persona text (system prompt, blurb) without
+    ///         minting a new token. Owner-only. The Updated event still
+    ///         fires so existing indexers see the data hash rotation;
+    ///         downstream consumers can read the new descriptions via
+    ///         dataDescriptionsOf(tokenId).
+    function refine(
+        uint256 tokenId,
+        bytes[] calldata proofs,
+        string[] calldata dataDescriptions
+    ) external {
+        TokenData storage token = _tokens[tokenId];
+        require(token.owner == msg.sender, "KilnAgentNFT: not owner");
+        require(proofs.length == token.dataHashes.length, "KilnAgentNFT: proofs length mismatch");
+        require(
+            dataDescriptions.length == proofs.length,
+            "KilnAgentNFT: descriptions length mismatch"
+        );
+
+        PreimageProofOutput[] memory out = _verifier.verifyPreimage(proofs);
+        bytes32[] memory newDataHashes = new bytes32[](out.length);
+        for (uint256 i = 0; i < out.length; i++) {
+            require(out[i].isValid, "KilnAgentNFT: invalid preimage proof");
+            newDataHashes[i] = out[i].dataHash;
+        }
+
+        bytes32[] memory oldDataHashes = token.dataHashes;
+        token.dataHashes = newDataHashes;
+
+        // Manually copy each string · solc's old codegen cannot bulk-copy a
+        // nested calldata dynamic array (string[]) into storage in one go.
+        delete token.dataDescriptions;
+        for (uint256 i = 0; i < dataDescriptions.length; i++) {
+            token.dataDescriptions.push(dataDescriptions[i]);
+        }
+
+        emit Updated(tokenId, oldDataHashes, newDataHashes);
+    }
+
     function isAuthorized(uint256 tokenId, address user) external view returns (bool) {
         address[] storage list = _tokens[tokenId].authorizedUsers;
         for (uint256 i = 0; i < list.length; i++) {
