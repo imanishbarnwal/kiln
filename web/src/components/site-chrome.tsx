@@ -106,10 +106,23 @@ export function SiteFooter() {
         </div>
         <div className="space-y-2">
           <div className="kiln-label">Built on</div>
-          <ul className="text-[var(--kiln-fg-1)] space-y-1">
-            <li>0G Storage · encrypted artifacts</li>
-            <li>0G Compute · verifiable inference</li>
-            <li>ERC-7857 iNFT · sovereign ownership</li>
+          <ul className="text-[var(--kiln-fg-1)] space-y-2">
+            <li className="flex items-center gap-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/brand/0g-purple.svg" alt="0G" className="h-4 w-auto" />
+              <span>Storage · Compute · Chain</span>
+            </li>
+            <li className="flex items-center gap-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/brand/ens-mark.svg" alt="ENS" className="h-4 w-auto" />
+              <span>ENS · sovereign identity</span>
+            </li>
+            <li className="flex items-center gap-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/brand/gensyn-mark.svg" alt="Gensyn" className="h-4 w-auto" />
+              <span>Gensyn AXL · council mesh</span>
+            </li>
+            <li className="text-[var(--kiln-fg-2)] pt-1">ERC-7857 iNFT · sovereign ownership</li>
           </ul>
         </div>
         <div className="space-y-2 md:text-right">

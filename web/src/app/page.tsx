@@ -84,44 +84,46 @@ export default function Home() {
         >
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
             <span className="kiln-label">Built on</span>
-            <div className="flex flex-wrap items-center gap-x-10 gap-y-4">
+            <div className="flex flex-wrap items-center gap-x-8 gap-y-4">
               <a
                 href="https://0g.ai"
                 target="_blank"
                 rel="noreferrer"
-                className="group flex items-center gap-2 opacity-80 hover:opacity-100 transition-opacity"
-                aria-label="0G Storage"
+                className="group flex items-center gap-2.5 opacity-80 hover:opacity-100 transition-opacity"
+                aria-label="0G · Storage, Compute, Chain"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/brand/0g-purple.svg" alt="0G" className="h-6 w-auto" />
                 <span className="kiln-label text-[var(--kiln-fg-1)] group-hover:text-[var(--kiln-fg-0)]">
-                  Storage
+                  Storage · Compute · Chain
                 </span>
               </a>
+              <span className="kiln-label text-[var(--kiln-fg-3)] self-center">·</span>
               <a
-                href="https://0g.ai"
+                href="https://ens.domains"
                 target="_blank"
                 rel="noreferrer"
-                className="group flex items-center gap-2 opacity-80 hover:opacity-100 transition-opacity"
-                aria-label="0G Compute"
+                className="group flex items-center gap-2.5 opacity-80 hover:opacity-100 transition-opacity"
+                aria-label="ENS · iNFT subnames"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/brand/0g-purple.svg" alt="0G" className="h-6 w-auto" />
+                <img src="/brand/ens-mark.svg" alt="ENS" className="h-6 w-auto" />
                 <span className="kiln-label text-[var(--kiln-fg-1)] group-hover:text-[var(--kiln-fg-0)]">
-                  Compute
+                  ENS · Sovereign identity
                 </span>
               </a>
+              <span className="kiln-label text-[var(--kiln-fg-3)] self-center">·</span>
               <a
-                href="https://0g.ai"
+                href="https://gensyn.ai"
                 target="_blank"
                 rel="noreferrer"
-                className="group flex items-center gap-2 opacity-80 hover:opacity-100 transition-opacity"
-                aria-label="0G Chain"
+                className="group flex items-center gap-2.5 opacity-80 hover:opacity-100 transition-opacity"
+                aria-label="Gensyn AXL · decentralized inference mesh"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/brand/0g-purple.svg" alt="0G" className="h-6 w-auto" />
+                <img src="/brand/gensyn-mark.svg" alt="Gensyn" className="h-6 w-auto" />
                 <span className="kiln-label text-[var(--kiln-fg-1)] group-hover:text-[var(--kiln-fg-0)]">
-                  Chain
+                  Gensyn AXL · Council mesh
                 </span>
               </a>
               <span className="kiln-label text-[var(--kiln-fg-3)] self-center">·</span>

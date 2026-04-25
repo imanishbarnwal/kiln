@@ -142,9 +142,25 @@ export default function ProfilePage() {
               Your <span className="kiln-display-italic text-[var(--kiln-ember-hot)]">kiln</span>.
             </h1>
             <p className="mt-4 text-[var(--kiln-fg-1)] max-w-xl">
-              Everything you have fired. Price them, transfer them, or retire
-              them. The ERC-7857 tokens are yours until you choose otherwise.
+              Everything you have fired. Price them, transfer them, claim a
+              name for them. The ERC-7857 tokens are yours until you choose otherwise.
             </p>
+            <a
+              href="https://app.ens.domains/?chain=sepolia"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-2 mt-4 px-3 py-1.5 border border-[var(--kiln-border-soft)] rounded-sm hover:border-[var(--kiln-gold)] hover:bg-[var(--kiln-bg-2)]/60 transition-colors group"
+              aria-label="ENS subnames live on Sepolia"
+            >
+              <span className="kiln-label normal-case tracking-[0.18em] text-[var(--kiln-fg-2)] group-hover:text-[var(--kiln-fg-1)]">
+                Names by
+              </span>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/brand/ens-mark.svg" alt="ENS" className="h-4 w-auto" />
+              <span className="kiln-label normal-case tracking-[0.18em] text-[var(--kiln-fg-1)] group-hover:text-[var(--kiln-fg-0)]">
+                ENS · kiln.eth
+              </span>
+            </a>
           </div>
           <div className="flex flex-col items-end gap-2">
             <Button

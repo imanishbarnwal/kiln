@@ -208,8 +208,23 @@ export default function CouncilPage() {
               the same encrypted channel.
             </p>
           </div>
-          <div className="col-span-12 md:col-span-4 space-y-2">
-            <div className="kiln-stamp">Powered by Gensyn AXL</div>
+          <div className="col-span-12 md:col-span-4 space-y-3">
+            <a
+              href="https://blog.gensyn.ai/introducing-axl/"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-2.5 px-3.5 py-2 border border-[var(--kiln-border-soft)] rounded-sm hover:border-[var(--kiln-gold)] hover:bg-[var(--kiln-bg-2)]/60 transition-colors group"
+              aria-label="Powered by Gensyn AXL"
+            >
+              <span className="kiln-label normal-case tracking-[0.2em] text-[var(--kiln-fg-2)] group-hover:text-[var(--kiln-fg-1)]">
+                Powered by
+              </span>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/brand/gensyn-mark.svg" alt="Gensyn" className="h-5 w-auto" />
+              <span className="kiln-label normal-case tracking-[0.18em] text-[var(--kiln-fg-1)] group-hover:text-[var(--kiln-fg-0)]">
+                Gensyn AXL
+              </span>
+            </a>
             <div className="text-xs font-mono text-[var(--kiln-fg-2)] leading-relaxed">
               Two AXL nodes, ed25519 peer ids, message routed over Yggdrasil + gVisor TCP. The synthesis hop is provably off-process.
             </div>
