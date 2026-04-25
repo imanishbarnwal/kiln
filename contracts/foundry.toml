@@ -15,6 +15,7 @@ remappings = [
 [rpc_endpoints]
 galileo   = "https://evmrpc-testnet.0g.ai"
 aristotle = "https://evmrpc.0g.ai"
+sepolia   = "https://ethereum-sepolia-rpc.publicnode.com"
 
 [etherscan]
 galileo   = { key = "${ETHERSCAN_API_KEY}", url = "https://chainscan-galileo.0g.ai/api", chain = 16602 }
