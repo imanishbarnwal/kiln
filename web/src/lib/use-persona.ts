@@ -1,0 +1,81 @@
+'use client'
+
+import { useEffect, useMemo, useState } from 'react'
+import { ethers } from 'ethers'
+import { ABIS, ADDRESSES } from './contracts'
+import { resolvePersona, type Persona } from './persona'
+
+const CACHE = new Map<string, Persona>()
+
+export function usePersona(tokenId: string | number | bigint | null | undefined) {
+  const key = tokenId === null || tokenId === undefined ? null : tokenId.toString()
+  const [persona, setPersona] = useState<Persona | null>(
+    key ? CACHE.get(key) ?? null : null,
+  )
+  const [loading, setLoading] = useState(false)
+
+  const readProvider = useMemo(
+    () => new ethers.JsonRpcProvider('https://evmrpc-testnet.0g.ai'),
+    [],
+  )
+
+  useEffect(() => {
+    if (!key) return
+    const cached = CACHE.get(key)
+    if (cached) { setPersona(cached); return }
+
+    let cancelled = false
+    setLoading(true)
+    ;(async () => {
+      try {
+        const nft = new ethers.Contract(
+          ADDRESSES.KilnAgentNFT,
+          ABIS.KilnAgentNFT as any,
+          readProvider,
+        )
+        const descriptions: string[] = await nft.dataDescriptionsOf(BigInt(key))
+        const p = resolvePersona(key, descriptions)
+        if (!cancelled) {
+          CACHE.set(key, p)
+          setPersona(p)
+        }
+      } catch {
+        if (!cancelled) setPersona(resolvePersona(key, []))
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
+
+    return () => { cancelled = true }
+  }, [key, readProvider])
+
+  return { persona, loading }
+}
+
+/// Batch-read personas for many tokenIds. Used by the marketplace list.
+export async function readPersonasBatch(
+  tokenIds: (string | bigint)[],
+): Promise<Record<string, Persona>> {
+  const readProvider = new ethers.JsonRpcProvider('https://evmrpc-testnet.0g.ai')
+  const nft = new ethers.Contract(
+    ADDRESSES.KilnAgentNFT,
+    ABIS.KilnAgentNFT as any,
+    readProvider,
+  )
+  const out: Record<string, Persona> = {}
+  for (const id of tokenIds) {
+    const key = id.toString()
+    const cached = CACHE.get(key)
+    if (cached) { out[key] = cached; continue }
+    try {
+      const descriptions: string[] = await nft.dataDescriptionsOf(BigInt(key))
+      const p = resolvePersona(key, descriptions)
+      CACHE.set(key, p)
+      out[key] = p
+    } catch {
+      const p = resolvePersona(key, [])
+      out[key] = p
+    }
+  }
+  return out
+}
