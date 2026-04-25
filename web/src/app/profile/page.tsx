@@ -11,12 +11,14 @@ import { KilnAvatar } from '@/components/kiln-avatar'
 import { TransferModal } from '@/components/transfer-modal'
 import { ListModal } from '@/components/list-modal'
 import { RefineModal } from '@/components/refine-modal'
+import { ClaimSubnameModal } from '@/components/claim-subname-modal'
 import { SessionTimer, DEFAULT_SESSION_SECONDS } from '@/components/session-timer'
 import { RepBadge } from '@/components/rep-badge'
 import { ABIS, ADDRESSES } from '@/lib/contracts'
 import { readPersonasBatch } from '@/lib/use-persona'
 import { readActiveSessionsFor, type ActiveSession } from '@/lib/active-sessions'
 import { useReputationBatch } from '@/lib/use-reputation'
+import { subnameForToken } from '@/lib/kiln-ens'
 import type { Persona } from '@/lib/persona'
 
 type Token = {
@@ -34,6 +36,7 @@ export default function ProfilePage() {
 
   const [tokens, setTokens] = useState<Token[]>([])
   const [personas, setPersonas] = useState<Record<string, Persona>>({})
+  const [subnames, setSubnames] = useState<Record<string, string | null>>({})
   const [activeSessions, setActiveSessions] = useState<Record<string, ActiveSession>>({})
   const [settledIds, setSettledIds] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(false)
@@ -41,6 +44,7 @@ export default function ProfilePage() {
   const [transferTokenId, setTransferTokenId] = useState<bigint | null>(null)
   const [listingToken, setListingToken] = useState<Token | null>(null)
   const [refineTokenId, setRefineTokenId] = useState<bigint | null>(null)
+  const [claimTokenId, setClaimTokenId] = useState<bigint | null>(null)
 
   const readProvider = useMemo(
     () => new ethers.JsonRpcProvider('https://evmrpc-testnet.0g.ai'),
@@ -77,15 +81,18 @@ export default function ProfilePage() {
       setTokens(owned)
 
       if (owned.length > 0) {
-        const [p, act] = await Promise.all([
+        const [p, act, subs] = await Promise.all([
           readPersonasBatch(owned.map((t) => t.id)),
           readActiveSessionsFor(readProvider, owned.map((t) => t.id)),
+          Promise.all(owned.map(async (t) => [t.id.toString(), await subnameForToken(t.id)] as const)),
         ])
         setPersonas(p)
         setActiveSessions(act)
+        setSubnames(Object.fromEntries(subs))
         setSettledIds(new Set())
       } else {
         setActiveSessions({})
+        setSubnames({})
       }
     } catch (err: unknown) {
       toast.error((err as Error).message)
@@ -181,6 +188,7 @@ export default function ProfilePage() {
             const p = personas[t.id.toString()]
             const active = activeSessions[t.id.toString()]
             const rep = repMap[t.id.toString()]
+            const subname = subnames[t.id.toString()]
             return (
               <div
                 key={t.id.toString()}
@@ -196,7 +204,17 @@ export default function ProfilePage() {
                       size={56}
                     />
                     <div className="min-w-0 flex-1">
-                      <div className="kiln-stamp">iNFT · {t.id.toString().padStart(3, '0')}</div>
+                      <div className="kiln-stamp flex items-center gap-2">
+                        <span>iNFT · {t.id.toString().padStart(3, '0')}</span>
+                        {subname && (
+                          <>
+                            <span className="text-[var(--kiln-fg-3)]">·</span>
+                            <span className="font-mono normal-case tracking-normal text-[var(--kiln-ember-hot)]">
+                              {subname}
+                            </span>
+                          </>
+                        )}
+                      </div>
                       <div className="flex items-center gap-3 mt-0.5">
                         <div className="kiln-display text-2xl truncate">
                           {p?.name ?? `iNFT #${t.id.toString()}`}
@@ -251,6 +269,15 @@ export default function ProfilePage() {
                     >
                       Refine
                     </Button>
+                    {!subname && (
+                      <Button
+                        variant="outline"
+                        onClick={() => setClaimTokenId(t.id)}
+                        className="h-10 px-4 rounded-sm border-[var(--kiln-border)] bg-transparent hover:bg-[var(--kiln-bg-2)] text-[var(--kiln-fg-1)] hover:text-[var(--kiln-fg-0)] font-mono text-xs tracking-widest uppercase"
+                      >
+                        Claim name
+                      </Button>
+                    )}
                     <Link href={`/chat/${t.id}`}>
                       <Button
                         variant="outline"
@@ -301,6 +328,14 @@ export default function ProfilePage() {
           open
           onClose={() => setRefineTokenId(null)}
           onRefined={() => { setRefineTokenId(null); refresh() }}
+        />
+      )}
+      {claimTokenId !== null && (
+        <ClaimSubnameModal
+          tokenId={claimTokenId}
+          open
+          onClose={() => setClaimTokenId(null)}
+          onClaimed={() => { setClaimTokenId(null); refresh() }}
         />
       )}
     </div>
