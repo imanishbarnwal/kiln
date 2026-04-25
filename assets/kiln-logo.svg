@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <radialGradient id="disc" cx="40%" cy="30%" r="85%">
+      <stop offset="0%" stop-color="#F7E7C7"/>
+      <stop offset="80%" stop-color="#D9C090"/>
+      <stop offset="100%" stop-color="#8A6D40"/>
+    </radialGradient>
+    <linearGradient id="flame" x1="50%" y1="10%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#FFAE5A"/>
+      <stop offset="55%" stop-color="#FF5A1F"/>
+      <stop offset="100%" stop-color="#7A1F06"/>
+    </linearGradient>
+    <radialGradient id="halo" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FF5A1F" stop-opacity="0.45"/>
+      <stop offset="60%" stop-color="#B93A0D" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- atmospheric halo -->
+  <circle cx="128" cy="128" r="128" fill="url(#halo)"/>
+
+  <!-- fired ceramic disc -->
+  <circle cx="128" cy="128" r="112" fill="url(#disc)"/>
+  <circle cx="128" cy="128" r="112" fill="none" stroke="#4A2E1D" stroke-opacity="0.42" stroke-width="3"/>
+  <circle cx="128" cy="128" r="88" fill="none" stroke="#4A2E1D" stroke-opacity="0.18" stroke-width="1"/>
+
+  <!-- carved flame -->
+  <path d="M128 56 C 100 96, 80 120, 80 160 A 48 48 0 0 0 176 160 C 176 120, 156 96, 128 56 Z"
+        fill="url(#flame)"/>
+
+  <!-- engraved highlight -->
+  <path d="M128 112 C 112 132, 104 148, 104 164 A 24 24 0 0 0 152 164 C 152 148, 144 132, 128 112 Z"
+        fill="rgba(255, 230, 190, 0.55)"/>
+</svg>

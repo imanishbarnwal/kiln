@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 200" width="620" height="200">
+  <defs>
+    <radialGradient id="disc" cx="40%" cy="30%" r="85%">
+      <stop offset="0%" stop-color="#F7E7C7"/>
+      <stop offset="80%" stop-color="#D9C090"/>
+      <stop offset="100%" stop-color="#8A6D40"/>
+    </radialGradient>
+    <linearGradient id="flame" x1="50%" y1="10%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#FFAE5A"/>
+      <stop offset="55%" stop-color="#FF5A1F"/>
+      <stop offset="100%" stop-color="#7A1F06"/>
+    </linearGradient>
+    <linearGradient id="wordmark" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FF8B3A"/>
+      <stop offset="55%" stop-color="#FF5A1F"/>
+      <stop offset="100%" stop-color="#B93A0D"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Fired-seal mark (Concept E). Vertically centered; no background panel. -->
+  <g transform="translate(30 20) scale(2.5)">
+    <circle cx="32" cy="32" r="28" fill="url(#disc)"/>
+    <circle cx="32" cy="32" r="28" fill="none" stroke="#4A2E1D" stroke-opacity="0.5" stroke-width="1"/>
+    <path d="M32 14 C 25 24, 20 30, 20 40 A 12 12 0 0 0 44 40 C 44 30, 39 24, 32 14 Z" fill="url(#flame)"/>
+    <path d="M32 28 C 28 33, 26 37, 26 41 A 6 6 0 0 0 38 41 C 38 37, 36 33, 32 28 Z" fill="rgba(255, 230, 190, 0.55)"/>
+  </g>
+
+  <!-- "Kiln" wordmark in ember gradient, readable on both light and dark README
+       backgrounds. Fraunces first; graceful serif fallback for environments
+       that sanitize web fonts (GitHub). -->
+  <text
+    x="240"
+    y="138"
+    fill="url(#wordmark)"
+    font-family="'Fraunces', 'Cormorant Garamond', 'Playfair Display', Georgia, 'Times New Roman', serif"
+    font-size="140"
+    font-weight="500"
+    letter-spacing="-2"
+    style="font-variation-settings: 'opsz' 144, 'SOFT' 100;"
+  >Kiln</text>
+</svg>
