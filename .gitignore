@@ -51,3 +51,7 @@ contracts/lib/
 # Vercel
 # ==================================================================
 .vercel
+
+# Local agent / planning notes (private)
+web/AGENTS.md
+web/CLAUDE.md
