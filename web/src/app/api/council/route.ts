@@ -24,6 +24,10 @@ type CoachReply = {
   name: string
   category: string
   text: string
+  /// True when this coach failed to respond. The UI renders an offline
+  /// state and the synth never sees these replies, so the verdict is
+  /// computed only over coaches that actually answered.
+  offline: boolean
   /// Wei-denominated per-session price from the on-chain marketplace listing.
   /// '0' if the iNFT is not listed; the UI hides the Book CTA in that case.
   pricePerSessionWei: string
@@ -84,13 +88,14 @@ export async function POST(req: NextRequest) {
       }),
     )
 
-    // 2) Run inference for every coach in parallel.
-    const replies: CoachReply[] = await Promise.all(
-      enriched.map(async ({ tokenId, persona, pricePerSessionWei, listingActive }) => {
-        const messages: ChatMessage[] = [
-          { role: 'system', content: persona.systemPrompt },
-          { role: 'user', content: question },
-        ]
+    // 2) Run inference per coach with bounded concurrency. The 0G Compute
+    //    providers rate-limit on simultaneous calls per IP · firing N>=3
+    //    in parallel reliably fails 1-2 of them. Two-at-a-time is the
+    //    sweet spot · still feels parallel, never trips the limit.
+    const replies: CoachReply[] = await mapWithConcurrency(
+      enriched,
+      2,
+      async ({ tokenId, persona, pricePerSessionWei, listingActive }) => {
         const base = {
           tokenId,
           name: persona.name,
@@ -98,19 +103,31 @@ export async function POST(req: NextRequest) {
           pricePerSessionWei: pricePerSessionWei.toString(),
           listingActive,
         }
+        const messages: ChatMessage[] = [
+          { role: 'system', content: persona.systemPrompt },
+          { role: 'user', content: question },
+        ]
         try {
           const r = await runOneShot(messages)
-          return { ...base, text: r.text }
-        } catch (err: unknown) {
-          return { ...base, text: `_(${persona.name} is offline · ${(err as Error).message})_` }
+          return { ...base, text: r.text, offline: false }
+        } catch {
+          return { ...base, text: '', offline: true }
         }
-      }),
+      },
     )
 
     // 3) Send the synthesis envelope to the synth node over AXL.
-    //    Strip the price/listing fields out · the synth only needs name +
-    //    category + text to do its job, no point bloating the envelope.
-    const synthReplies = replies.map((r) => ({
+    //    Drop offline replies · we only want the synth to reason over
+    //    coaches that actually answered. If everyone is offline we
+    //    short-circuit the whole flow with a clean error.
+    const successful = replies.filter((r) => !r.offline)
+    if (successful.length === 0) {
+      return Response.json(
+        { error: 'No coach was reachable. The 0G Compute upstream is flaking · try again in a moment.', queryId, replies },
+        { status: 502 },
+      )
+    }
+    const synthReplies = successful.map((r) => ({
       tokenId: r.tokenId,
       name: r.name,
       category: r.category,
@@ -150,4 +167,26 @@ export async function POST(req: NextRequest) {
 
 function newQueryId(): string {
   return `q-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
+}
+
+/// Tiny worker-pool. N workers pull off a shared index until the input
+/// list is exhausted. Order is preserved in the result array. Used to
+/// keep concurrent inference calls under the upstream rate limit.
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results: R[] = new Array(items.length)
+  let cursor = 0
+  await Promise.all(
+    Array.from({ length: Math.min(concurrency, items.length) }, async () => {
+      while (true) {
+        const idx = cursor++
+        if (idx >= items.length) return
+        results[idx] = await fn(items[idx])
+      }
+    }),
+  )
+  return results
 }

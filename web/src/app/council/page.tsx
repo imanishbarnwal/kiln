@@ -41,6 +41,7 @@ type CoachReply = {
   name: string
   category: string
   text: string
+  offline: boolean
   pricePerSessionWei: string
   listingActive: boolean
 }
@@ -82,7 +83,7 @@ function savePreviewed(wallet: string | undefined, set: Set<string>) {
 }
 
 const MIN_PICK = 2
-const MAX_PICK = 4
+const MAX_PICK = 3
 
 export default function CouncilPage() {
   const { wallets } = useWallets()
@@ -299,12 +300,18 @@ export default function CouncilPage() {
               <div className="kiln-label mb-3">Per-coach replies</div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {result.replies.map((r) => {
-                  const isBestFit = result.synthesis.bestFitTokenId === r.tokenId
+                  const isBestFit = !r.offline && result.synthesis.bestFitTokenId === r.tokenId
                   const priceWei = BigInt(r.pricePerSessionWei)
                   return (
                     <div
                       key={r.tokenId}
-                      className={`kiln-card p-5 ${isBestFit ? 'kiln-card-hot ring-1 ring-[var(--kiln-ember-hot)]' : 'kiln-card-hot'}`}
+                      className={`kiln-card p-5 ${
+                        r.offline
+                          ? 'opacity-60'
+                          : isBestFit
+                          ? 'kiln-card-hot ring-1 ring-[var(--kiln-ember-hot)]'
+                          : 'kiln-card-hot'
+                      }`}
                     >
                       <div className="flex items-center gap-3 mb-3">
                         <KilnAvatar
@@ -322,13 +329,24 @@ export default function CouncilPage() {
                                 · best fit
                               </span>
                             )}
+                            {r.offline && (
+                              <span className="font-mono normal-case tracking-normal text-[var(--kiln-fg-3)]">
+                                · couldn't reach
+                              </span>
+                            )}
                           </div>
                           <div className="kiln-display text-lg truncate">{r.name}</div>
                         </div>
                       </div>
-                      <p className="text-sm text-[var(--kiln-fg-1)] leading-relaxed whitespace-pre-wrap">
-                        {r.text}
-                      </p>
+                      {r.offline ? (
+                        <p className="text-sm text-[var(--kiln-fg-2)] italic">
+                          The 0G Compute upstream rejected this coach's request. Click <span className="text-[var(--kiln-ember-hot)]">Convene</span> again to retry, or remove this coach from the picker.
+                        </p>
+                      ) : (
+                        <p className="text-sm text-[var(--kiln-fg-1)] leading-relaxed whitespace-pre-wrap">
+                          {r.text}
+                        </p>
+                      )}
                       <div className="mt-5 flex items-center justify-between gap-3 border-t border-[var(--kiln-border-soft)] pt-4">
                         <div className="text-xs font-mono text-[var(--kiln-fg-2)]">
                           {r.listingActive && priceWei > 0n ? (
