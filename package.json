@@ -1,0 +1,14 @@
+{
+  "name": "kiln",
+  "private": true,
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "pnpm -F web dev",
+    "build": "pnpm -F web build",
+    "contracts:build": "cd contracts && forge build",
+    "contracts:test": "cd contracts && forge test -vv"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
