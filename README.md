@@ -30,6 +30,7 @@ Built end-to-end on the **0G** stack: Storage for encrypted artifacts, Compute f
   - [Rent](#rent)
   - [Transfer](#transfer)
 - [The single question that matters](#the-single-question-that-matters-how-does-the-chat-know-who-it-is)
+- [ENS subnames · iNFTs you can name](#ens-subnames--infts-you-can-name)
 - [Tech stack](#tech-stack)
 - [Repo layout](#repo-layout)
 - [Smart contracts](#smart-contracts)
@@ -50,7 +51,15 @@ All three Kiln contracts are live on the **0G Galileo testnet** (chain id `16602
 | `KilnMarket` | `0x37fe0b75dae90ee8d844125373b1a2127ff7c67d` | [view](https://chainscan-galileo.0g.ai/address/0x37fe0b75dae90ee8d844125373b1a2127ff7c67d) |
 | `KilnMockVerifier` (demo) | `0x2fc379c08632792bf701a4d46309004cc103c123` | [view](https://chainscan-galileo.0g.ai/address/0x2fc379c08632792bf701a4d46309004cc103c123) |
 
+A fourth contract lives on the **Sepolia ENS registry** (chain id `11155111`) so each iNFT can claim a permanent `<label>.kiln.eth` subname:
+
+| Contract | Address | Explorer |
+|---|---|---|
+| `KilnSubnameRegistrar` | `0xbd55D3bB25Ac799d3E463b6945C570045aC1a90a` | [view](https://sepolia.etherscan.io/address/0xbd55D3bB25Ac799d3E463b6945C570045aC1a90a) |
+
 The marketplace is seeded with coaches across Chess, Wellness, Startup, Languages, and Math. Every listed token is queryable with `KilnAgentNFT.dataDescriptionsOf(tokenId)` · the persona (name, category, blurb, system prompt) is committed on chain, not in a database.
+
+Coaches who claim an ENS subname get a route slug for free: `/chat/mira` and `/chat/mira.kiln.eth` both resolve to the same iNFT.
 
 ## How it works in one diagram
 
@@ -135,6 +144,23 @@ Alina's iNFT stores this JSON in `dataDescriptions[0]` on Galileo:
 ```
 
 The server reads that blob fresh from chain on every chat request, prepends the `systemPrompt` as a `role: "system"` message, and sends the conversation to 0G Compute. Every character of the coach's voice is on chain, queryable by anyone who can hit a JSON-RPC endpoint. On `/chat/[id]` there is an **"Intelligence · embedded on 0G Chain"** panel that decodes the blob live from the contract so you can verify this with your own eyes.
+
+## ENS subnames · iNFTs you can name
+
+`KilnSubnameRegistrar` on Sepolia turns each iNFT into a permanent `<label>.kiln.eth` subname so coaches show up across every ENS-aware client, not just inside Kiln.
+
+How a claim works:
+
+1. From `/profile`, an iNFT owner picks a label (`mira`). The modal hits the live registrar to confirm it's free.
+2. The user signs a tiny EIP-191 message (`Kiln · claim mira.kiln.eth for iNFT #5`). No chain switch · the wallet stays on Galileo.
+3. `/api/ens/claim` recovers the signer, confirms `KilnAgentNFT.ownerOf(tokenId)` matches, and the **ops wallet** (which already paid for the parent name) submits the actual `register` tx on Sepolia. Cost to the user: zero gas.
+4. The registrar sets the subname's `addr` record to the iNFT owner, writes `kiln.tokenId`, `kiln.chain`, `description`, and `url` text records, then **transfers ownership of the subnode to the user** so they manage records via the standard ENS app afterwards.
+
+What that buys the rest of the app:
+
+- `/chat/mira.kiln.eth` and `/chat/mira` both resolve via the registrar's `subnodeToken` mapping and route to the canonical numeric tokenId. Bare numbers (`/chat/5`) still work.
+- The marketplace search box accepts subnames (with or without the `.kiln.eth` suffix) and matches on the same label that's stored on chain.
+- Wallet → name resolution for the app's own UI (the Transfer modal, the rep card, the chat masthead) still uses **mainnet ENS** through the existing `lib/ens.ts` reverse-lookup helper. The two namespaces don't conflict.
 
 ## Tech stack
 
