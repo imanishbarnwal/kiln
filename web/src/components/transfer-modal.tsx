@@ -43,10 +43,10 @@ export function TransferModal({
   useEffect(() => {
     setResolvedAddress(null)
     setResolvedName(null)
-    const v = to.trim()
+    const v: string = to.trim()
     if (!v) return
-    const isAddr = ethers.isAddress(v)
-    const looksLikeEns = !isAddr && v.includes('.')
+    const isAddr: boolean = ethers.isAddress(v)
+    const looksLikeEns: boolean = !isAddr && v.indexOf('.') >= 0
     if (!isAddr && !looksLikeEns) return
 
     let cancelled = false
@@ -56,7 +56,7 @@ export function TransferModal({
         if (isAddr) {
           const name = await resolveAddress(v)
           if (!cancelled) setResolvedName(name)
-        } else if (looksLikeEns) {
+        } else {
           const addr = await resolveName(v)
           if (!cancelled) setResolvedAddress(addr)
         }

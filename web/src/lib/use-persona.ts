@@ -7,6 +7,13 @@ import { resolvePersona, type Persona } from './persona'
 
 const CACHE = new Map<string, Persona>()
 
+/// Drop a cached persona so the next read fetches from chain.
+/// Call this after a successful refine() so the new persona text propagates
+/// across pages without a full reload.
+export function invalidatePersonaCache(tokenId: string | number | bigint) {
+  CACHE.delete(String(tokenId))
+}
+
 export function usePersona(tokenId: string | number | bigint | null | undefined) {
   const key = tokenId === null || tokenId === undefined ? null : tokenId.toString()
   const [persona, setPersona] = useState<Persona | null>(

@@ -10,6 +10,7 @@ import { SiteNav, SiteFooter } from '@/components/site-chrome'
 import { KilnAvatar } from '@/components/kiln-avatar'
 import { TransferModal } from '@/components/transfer-modal'
 import { ListModal } from '@/components/list-modal'
+import { RefineModal } from '@/components/refine-modal'
 import { SessionTimer, DEFAULT_SESSION_SECONDS } from '@/components/session-timer'
 import { RepBadge } from '@/components/rep-badge'
 import { ABIS, ADDRESSES } from '@/lib/contracts'
@@ -39,6 +40,7 @@ export default function ProfilePage() {
 
   const [transferTokenId, setTransferTokenId] = useState<bigint | null>(null)
   const [listingToken, setListingToken] = useState<Token | null>(null)
+  const [refineTokenId, setRefineTokenId] = useState<bigint | null>(null)
 
   const readProvider = useMemo(
     () => new ethers.JsonRpcProvider('https://evmrpc-testnet.0g.ai'),
@@ -242,6 +244,13 @@ export default function ProfilePage() {
                     >
                       {t.listed ? 'Update price' : 'List for rent'}
                     </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setRefineTokenId(t.id)}
+                      className="h-10 px-4 rounded-sm border-[var(--kiln-border)] bg-transparent hover:bg-[var(--kiln-bg-2)] text-[var(--kiln-fg-1)] hover:text-[var(--kiln-fg-0)] font-mono text-xs tracking-widest uppercase"
+                    >
+                      Refine
+                    </Button>
                     <Link href={`/chat/${t.id}`}>
                       <Button
                         variant="outline"
@@ -284,6 +293,14 @@ export default function ProfilePage() {
           initialPerDay={listingToken.licensePricePerDay}
           onClose={() => setListingToken(null)}
           onListed={() => { setListingToken(null); refresh() }}
+        />
+      )}
+      {refineTokenId !== null && (
+        <RefineModal
+          tokenId={refineTokenId}
+          open
+          onClose={() => setRefineTokenId(null)}
+          onRefined={() => { setRefineTokenId(null); refresh() }}
         />
       )}
     </div>
