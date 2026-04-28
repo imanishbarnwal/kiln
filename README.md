@@ -4,7 +4,7 @@
 
 ### *Fire your model. Own your model.*
 
-**A sovereign atelier for AI experts. Mint your fine-tuned AI as an iNFT you own forever. Rent it by the session. Sell it like any other asset.**
+**A sovereign atelier for AI experts. Mint your AI coach as an iNFT you own forever. Rent it by the session. Sell it like any other asset.**
 
 [![Status](https://img.shields.io/badge/Status-LIVE-brightgreen?style=for-the-badge)](#live-deployments)
 [![Built on 0G](https://img.shields.io/badge/Built_on-0G-FF5A1F?style=for-the-badge&labelColor=0B0604)](https://0g.ai)
@@ -131,7 +131,10 @@ The owner calls `KilnAgentNFT.transfer(to, tokenId, proofs)` from their wallet.
 
 ## The single question that matters · how does the chat know who it is?
 
-When you chat with **GM Alina Volkov** (iNFT #3), the model is not fine-tuned on chess. The model is Qwen 2.5 7B · a general-purpose instruction-following model. What makes it reply like Alina instead of like Aarav is the **system prompt committed to the iNFT**.
+When you chat with **GM Alina Volkov** (iNFT #3), the underlying model is **not fine-tuned** on chess. It is Qwen 2.5 7B Instruct · a general-purpose instruction-following model running inside a 0G Compute TEE. What makes it reply like Alina instead of like Aarav is two things, both committed on chain:
+
+1. The **system prompt** stored in `dataDescriptions[0]`, which sets her voice, register, and teaching style.
+2. The coach's **uploaded notes**, chunked into a manifest in 0G Storage and **BM25-retrieved at chat time** so Alina can quote her own material verbatim instead of inventing answers.
 
 Alina's iNFT stores this JSON in `dataDescriptions[0]` on Galileo:
 
@@ -144,7 +147,9 @@ Alina's iNFT stores this JSON in `dataDescriptions[0]` on Galileo:
 }
 ```
 
-The server reads that blob fresh from chain on every chat request, prepends the `systemPrompt` as a `role: "system"` message, and sends the conversation to 0G Compute. Every character of the coach's voice is on chain, queryable by anyone who can hit a JSON-RPC endpoint. On `/chat/[id]` there is an **"Intelligence · embedded on 0G Chain"** panel that decodes the blob live from the contract so you can verify this with your own eyes.
+The server reads that blob fresh from chain on every chat request. If the persona has a `ragHash` field, the server also fetches the chunked notes manifest from 0G Storage, runs **BM25** against the student's latest message, and prepends the top-3 retrieved passages to the system prompt as `Reference material from <coach name>'s notebook · cite by [#index] when you use it:`. The combined prompt then streams through 0G Compute (Qwen 2.5 7B in a TEE).
+
+Why BM25 instead of embeddings: zero model dependency, instant cold-start, deterministic, and it actually outperforms naive embeddings on keyword-heavy domains (chess openings, asanas, frameworks). Every character of the coach's voice plus the cited material is verifiably on chain or in 0G Storage. On `/chat/[id]` the **"Intelligence · embedded on 0G Chain"** panel decodes the blob live from the contract and shows the manifest hash + chunk count so you can verify this yourself.
 
 ## ENS subnames · iNFTs you can name
 
@@ -401,7 +406,7 @@ Mints five sample coaches (Chess, Wellness, Startup, Languages, Math) owned by t
 We prefer accuracy over marketing. Four things we want a careful reader to know.
 
 **1. The training files are not yet used by inference.**
-Files a coach uploads are encrypted in the browser with AES-256-GCM, pinned to 0G Storage, and committed on chain as `dataHashes[0]`. The coach's voice today is driven entirely by the `systemPrompt` they write in the onboard form. The uploaded corpus is **tamper-evident commitment**, not a training signal. Path to v2: run a fine-tune job via 0G Compute's fine-tuning API (testnet beta), store the resulting LoRA adapter's root on `dataHashes`, load at inference. Simpler interim path: chunk + embed + RAG at inference time.
+Files a coach uploads are encrypted in the browser with AES-256-GCM, pinned to 0G Storage, and committed on chain as `dataHashes[0]` · the encrypted artifact is the **tamper-evident provenance** record. In parallel, the readable text content is chunked into a separate manifest stored unencrypted in 0G Storage; that manifest's root hash is committed inside the persona JSON as `ragHash`. The inference route fetches the manifest at chat time, runs **BM25** over the chunks against the student's latest question, and injects the top-3 results into the system prompt so the coach can quote their own material. Honest framing: the encrypted artifact is the private original (lecture-notes-grade); the manifest is the publicly-readable corpus (syllabus-grade) that any verifier can audit. Path to v2: replace BM25 with embeddings via 0G Compute's embedding endpoint when it ships, and add real fine-tuning when 0G Compute exposes a training API.
 
 **2. The verifier is a demo stand-in.**
 `KilnMockVerifier` accepts any correctly-formatted proof. In production you would deploy `TeeVerifier.sol` from the 0G reference and register it as the `verifier()` of `KilnAgentNFT`. That is a one-function admin call. The rest of the contract does not change.
@@ -415,7 +420,7 @@ Rent-session inference and endSession settlement both sign from the `KILN_OPS_PK
 ## Roadmap
 
 - **v1 (shipped)** · Mint, rent, transfer, 30-min timer, coach-set pricing, per-iNFT persona on chain, alchemical constellation avatars, intelligence-embedded proof panel.
-- **v2 · real training.** Kick off a fine-tune job on 0G Compute at mint time; store the LoRA adapter root on the iNFT; load it at inference. Or interim: chunk + embed + RAG.
+- **v2 · embeddings + real training.** Upgrade BM25 retrieval to embeddings via 0G Compute's embedding endpoint when it lands. Then add real fine-tuning by kicking off a LoRA job on 0G Compute at mint time and storing the adapter's root hash on the iNFT.
 - **v2 · real TEE verifier.** Swap `KilnMockVerifier` for 0G TeeML's production verifier. No application changes required.
 - **v2 · reputation.** Index `SessionEnded` events per token, feed the session count + average rating into `KilnAvatar.reputation`. The avatar already reads the parameter; it is pinned at 0 today.
 - **v2 · mainnet.** Deploy the three contracts on Aristotle (chain id `16661`) and list on the AIverse iNFT marketplace.

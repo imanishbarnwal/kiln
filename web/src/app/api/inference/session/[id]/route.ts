@@ -3,12 +3,36 @@ import { z } from 'zod'
 import { ethers } from 'ethers'
 import { ABIS, ADDRESSES } from '@/lib/contracts'
 import { resolvePersona } from '@/lib/persona'
+import { storage } from '@/lib/storage'
+import { bm25TopK, formatRetrieved, type RagManifest } from '@/lib/rag'
 import {
   ensureLedger,
   listInferenceServices,
   prepareProvider,
   inferenceHandles,
 } from '@/lib/compute'
+
+/// Process-local cache for RAG manifests · key by ragHash. Manifests
+/// don't change once published (the hash is content-addressed) so the
+/// cache never needs invalidation. Saves a 0G Storage round-trip on
+/// every chat turn for the same coach.
+const ragCache = new Map<string, RagManifest>()
+
+async function loadRagManifest(ragHash: string | undefined | null): Promise<RagManifest | null> {
+  if (!ragHash) return null
+  const cached = ragCache.get(ragHash)
+  if (cached) return cached
+  try {
+    const bytes = await storage.downloadBytes(ragHash)
+    const text = new TextDecoder().decode(bytes)
+    const parsed = JSON.parse(text) as RagManifest
+    if (parsed?.version !== 1 || !Array.isArray(parsed.chunks)) return null
+    ragCache.set(ragHash, parsed)
+    return parsed
+  } catch {
+    return null
+  }
+}
 
 export const runtime = 'nodejs'
 export const maxDuration = 300
@@ -98,7 +122,20 @@ export async function POST(
     descriptions = await nft.dataDescriptionsOf(session.tokenId)
   } catch {}
   const persona = resolvePersona(session.tokenId.toString(), descriptions)
-  const systemPrompt = persona.systemPrompt
+
+  // RAG: if the persona points at a manifest, fetch it once and pull the
+  // top-3 chunks most relevant to the student's latest message. We
+  // prepend the cited material to the system prompt so the coach can
+  // quote their own notes verbatim. If the manifest is missing or the
+  // fetch fails, we fall back gracefully to system-prompt-only.
+  let systemPrompt = persona.systemPrompt
+  const lastUserMessage = [...args.messages].reverse().find((m) => m.role === 'user')?.content ?? ''
+  const manifest = await loadRagManifest(persona.ragHash)
+  if (manifest && lastUserMessage) {
+    const top = bm25TopK(manifest.chunks, lastUserMessage, 3)
+    const block = formatRetrieved(persona.name, top)
+    if (block) systemPrompt = `${block}\n\n---\n\n${systemPrompt}`
+  }
 
   // 3) Pick ALL chat-capable providers and try them in order with one retry
   //    each. 0G Compute's upstream models (Qwen, GPT-OSS) occasionally 5xx;
@@ -117,7 +154,6 @@ export async function POST(
     { role: 'system', content: systemPrompt },
     ...args.messages,
   ]
-  const lastUserMessage = [...args.messages].reverse().find((m) => m.role === 'user')?.content
 
   type Attempt = { provider: string; status?: number; note: string }
   const attempts: Attempt[] = []

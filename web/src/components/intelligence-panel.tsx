@@ -115,6 +115,15 @@ export function IntelligencePanel({ tokenId, persona }: Props) {
             metadata. Anyone can read it back by calling <span className="font-mono text-[var(--kiln-fg-0)]">dataDescriptionsOf(tokenId)</span>,
             and nobody can alter it without minting an Updated event traced to
             the owner&apos;s wallet.
+            {persona?.ragHash && (
+              <>
+                {' '}The coach&apos;s notes also live on 0G Storage as a chunked
+                manifest · the inference route fetches them and{' '}
+                <span className="font-mono text-[var(--kiln-ember-hot)]">BM25-retrieves</span>{' '}
+                the most relevant passages so the answer can quote the
+                source material verbatim.
+              </>
+            )}
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
@@ -157,6 +166,14 @@ export function IntelligencePanel({ tokenId, persona }: Props) {
                   </span>
                   <span className="text-[var(--kiln-fg-2)]">Encrypted artifact · AES-256-GCM</span>
                 </Field>
+                {persona?.ragHash && (
+                  <Field label="Retrieval index" sub="BM25 over plaintext chunks">
+                    <span className="font-mono text-[var(--kiln-fg-1)] break-all">{persona.ragHash}</span>
+                    <span className="text-[var(--kiln-fg-2)]">
+                      {persona.ragChunkCount ?? '?'} chunk{persona.ragChunkCount === 1 ? '' : 's'} indexed · top-3 cited per turn
+                    </span>
+                  </Field>
+                )}
               </>
             )}
           </div>
@@ -214,6 +231,7 @@ function formatPersona(p: Persona | null): string {
       category: p.category,
       blurb: p.blurb,
       systemPrompt: p.systemPrompt,
+      ...(p.ragHash ? { ragHash: p.ragHash, ragChunkCount: p.ragChunkCount } : {}),
     },
     null,
     2,

@@ -15,8 +15,9 @@ import { generateKey, exportKey, encrypt, sha256Hex } from '@/lib/encryption'
 import { ABIS, ADDRESSES } from '@/lib/contracts'
 import { galileo } from '@/lib/chains'
 import { serializePersona, type Persona } from '@/lib/persona'
+import { chunkText, type RagManifest } from '@/lib/rag'
 
-type Phase = 'idle' | 'switching' | 'encrypting' | 'uploading' | 'minting' | 'done'
+type Phase = 'idle' | 'switching' | 'encrypting' | 'uploading' | 'indexing' | 'minting' | 'done'
 
 const CATEGORY_HINTS = [
   'Chess', 'Wellness', 'Startup', 'Languages',
@@ -28,6 +29,7 @@ function phaseLabel(p: Phase) {
     case 'switching': return 'Switching network'
     case 'encrypting': return 'Sealing artifact'
     case 'uploading': return 'Loading into the chamber'
+    case 'indexing': return 'Indexing notes for retrieval'
     case 'minting': return 'Firing on-chain'
     case 'done': return 'Fired'
     default: return 'Begin firing'
@@ -85,14 +87,55 @@ export default function OnboardPage() {
         sessionStorage.setItem(`kiln.dataKey.${rh}`, Buffer.from(rawKey).toString('base64'))
       } catch {}
 
-      setPhase('minting')
+      // Build a RAG manifest from the readable contents of the upload.
+      // We try to decode the upload as text · if it's binary or empty,
+      // we skip the indexing step and the coach falls back to system-
+      // prompt-only inference.
+      setPhase('indexing')
       const dataHash = await sha256Hex(ciphertext)
+      let ragHash: string | undefined
+      let ragChunkCount: number | undefined
+      try {
+        const text = await readFilesAsText(files)
+        const chunks = chunkText(text)
+        if (chunks.length > 0) {
+          const manifest: RagManifest = {
+            version: 1,
+            sourceDataHash: dataHash,
+            source: {
+              fileName: files[0].name,
+              fileSize: files.reduce((acc, f) => acc + f.size, 0),
+              mimeType: files[0].type || 'text/plain',
+            },
+            chunks,
+          }
+          const manifestBytes = new TextEncoder().encode(JSON.stringify(manifest))
+          const ragRes = await fetch('/api/storage/upload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ data: Buffer.from(manifestBytes).toString('base64') }),
+          })
+          if (ragRes.ok) {
+            const { rootHash: rh2 } = await ragRes.json() as { rootHash: string }
+            ragHash = rh2
+            ragChunkCount = chunks.length
+            toast.success(`Indexed ${chunks.length} note chunk${chunks.length === 1 ? '' : 's'}`)
+          }
+        }
+      } catch {
+        // Indexing is best-effort · the mint should not fail if a coach
+        // uploads a binary file. Their system prompt still drives replies.
+      }
+
+      setPhase('minting')
       const persona: Persona = {
         name: name.trim(),
         category: category.trim() || 'General',
         avatar: '',
         blurb: blurb.trim() || systemPrompt.trim().slice(0, 120),
         systemPrompt: systemPrompt.trim(),
+        ragHash,
+        ragChunkCount,
       }
       const descriptions = [serializePersona(persona)]
 
@@ -320,4 +363,19 @@ function Field({
       {children}
     </div>
   )
+}
+
+async function readFilesAsText(files: File[]): Promise<string> {
+  // Decode every file as utf-8 text. Binary blobs decode to garbage but the
+  // chunker drops chunks that are too short or noisy; the indexing step is
+  // best-effort and the mint succeeds either way.
+  const chunks: string[] = []
+  for (const f of files) {
+    try {
+      const buf = await f.arrayBuffer()
+      const text = new TextDecoder("utf-8", { fatal: false }).decode(buf)
+      if (text && text.trim()) chunks.push(text)
+    } catch {}
+  }
+  return chunks.join('\n\n')
 }

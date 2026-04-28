@@ -13,6 +13,11 @@ export type Persona = {
   avatar: string
   blurb: string
   systemPrompt: string
+  /// Optional pointer to a RAG manifest (chunked plaintext notes) stored in
+  /// 0G Storage. Hex root hash. When present, the inference route fetches
+  /// the manifest and prepends top-k retrieved chunks to the system prompt.
+  ragHash?: string
+  ragChunkCount?: number
 }
 
 export const PERSONAS: Record<string, Persona> = {

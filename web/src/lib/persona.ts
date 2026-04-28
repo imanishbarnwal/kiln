@@ -26,6 +26,8 @@ export function tryParsePersona(raw: string | undefined | null): Persona | null 
       avatar: parsed.avatar ?? '',
       blurb: parsed.blurb ?? '',
       systemPrompt: parsed.systemPrompt,
+      ragHash: parsed.ragHash || undefined,
+      ragChunkCount: typeof parsed.ragChunkCount === 'number' ? parsed.ragChunkCount : undefined,
     }
   } catch {
     return null
