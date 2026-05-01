@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { SiteNav, SiteFooter } from '@/components/site-chrome'
 import { UploadDropzone } from '@/components/upload-dropzone'
 import { UploadGuide } from '@/components/upload-guide'
+import { FiringLadder } from '@/components/firing-ladder'
 import { generateKey, exportKey, encrypt, sha256Hex } from '@/lib/encryption'
 import { ABIS, ADDRESSES } from '@/lib/contracts'
 import { galileo } from '@/lib/chains'
@@ -51,6 +52,7 @@ export default function OnboardPage() {
   const [rootHash, setRootHash] = useState<string | null>(null)
   const [mintedTokenId, setMintedTokenId] = useState<bigint | null>(null)
   const [txHash, setTxHash] = useState<`0x${string}` | null>(null)
+  const [ragChunkCount, setRagChunkCount] = useState<number | null>(null)
 
   async function fire() {
     if (!authenticated) return toast.error('Connect your wallet first')
@@ -60,6 +62,7 @@ export default function OnboardPage() {
     if (!systemPrompt.trim()) return toast.error('Describe the persona style')
     if (!files.length) return toast.error('Add at least one training file')
 
+    setRagChunkCount(null)
     try {
       if (Number(wallet.chainId.split(':').pop()) !== galileo.id) {
         setPhase('switching')
@@ -119,6 +122,7 @@ export default function OnboardPage() {
             const { rootHash: rh2 } = await ragRes.json() as { rootHash: string }
             ragHash = rh2
             ragChunkCount = chunks.length
+            setRagChunkCount(chunks.length)
             toast.success(`Indexed ${chunks.length} note chunk${chunks.length === 1 ? '' : 's'}`)
           }
         }
@@ -276,6 +280,8 @@ export default function OnboardPage() {
               </Button>
             )}
           </div>
+
+          <FiringLadder phase={phase} ragChunkCount={ragChunkCount} />
 
           <div className="mt-8 space-y-2 font-mono text-xs text-[var(--kiln-fg-2)]">
             {rootHash && (
