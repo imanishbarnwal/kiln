@@ -23,7 +23,6 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { ethers } from 'ethers'
 import { toast } from 'sonner'
-import { useWallets } from '@privy-io/react-auth'
 import { SiteNav, SiteFooter } from '@/components/site-chrome'
 import { Button } from '@/components/ui/button'
 import { KilnAvatar } from '@/components/kiln-avatar'
@@ -59,47 +58,16 @@ type CouncilResponse = {
   synthesis: Synthesis
 }
 
-/// localStorage key for tracking which coaches a wallet has previewed via
-/// Council. We use this to render a subtle '✓ Previewed' chip on cards
-/// the user already evaluated · pure UX hint, no payment gating yet.
-const PREVIEWED_KEY = (wallet: string) => `kiln.council.previewed.${wallet.toLowerCase()}`
-
-function loadPreviewed(wallet: string | undefined): Set<string> {
-  if (!wallet || typeof window === 'undefined') return new Set()
-  try {
-    const raw = window.localStorage.getItem(PREVIEWED_KEY(wallet))
-    if (!raw) return new Set()
-    return new Set(JSON.parse(raw) as string[])
-  } catch {
-    return new Set()
-  }
-}
-
-function savePreviewed(wallet: string | undefined, set: Set<string>) {
-  if (!wallet || typeof window === 'undefined') return
-  try {
-    window.localStorage.setItem(PREVIEWED_KEY(wallet), JSON.stringify(Array.from(set)))
-  } catch {}
-}
-
 const MIN_PICK = 2
 const MAX_PICK = 3
 
 export default function CouncilPage() {
-  const { wallets } = useWallets()
-  const wallet = wallets[0]
-
   const [listings, setListings] = useState<Listing[]>([])
   const [picked, setPicked] = useState<Set<string>>(new Set())
   const [question, setQuestion] = useState('')
   const [busy, setBusy] = useState(false)
   const [result, setResult] = useState<CouncilResponse | null>(null)
   const [phase, setPhase] = useState<'idle' | 'inference' | 'mesh' | 'synthesis' | 'done'>('idle')
-  const [previewed, setPreviewed] = useState<Set<string>>(new Set())
-
-  useEffect(() => {
-    setPreviewed(loadPreviewed(wallet?.address))
-  }, [wallet?.address])
 
   const readProvider = useMemo(
     () => new ethers.JsonRpcProvider('https://evmrpc-testnet.0g.ai'),
@@ -176,11 +144,6 @@ export default function CouncilPage() {
       const response = json as CouncilResponse
       setResult(response)
       setPhase('done')
-      // Mark every coach in this convene as previewed for this wallet.
-      const next = new Set(previewed)
-      for (const r of response.replies) next.add(r.tokenId)
-      setPreviewed(next)
-      savePreviewed(wallet?.address, next)
     } catch (err: unknown) {
       toast.error((err as Error).message ?? 'council failed')
       setPhase('idle')
@@ -242,7 +205,6 @@ export default function CouncilPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {listings.map((l) => {
               const selected = picked.has(l.tokenId)
-              const seen = previewed.has(l.tokenId)
               return (
                 <button
                   key={l.tokenId}
@@ -259,14 +221,7 @@ export default function CouncilPage() {
                     size={44}
                   />
                   <div className="min-w-0 flex-1">
-                    <div className="kiln-stamp flex items-center gap-2">
-                      <span>iNFT · {l.tokenId.padStart(3, '0')}</span>
-                      {seen && (
-                        <span className="text-[var(--kiln-fg-3)] normal-case tracking-normal text-[0.6875rem]">
-                          ✓ previewed
-                        </span>
-                      )}
-                    </div>
+                    <div className="kiln-stamp">iNFT · {l.tokenId.padStart(3, '0')}</div>
                     <div className="kiln-display text-base truncate">{l.persona.name}</div>
                     <div className="text-xs text-[var(--kiln-fg-2)]">{l.persona.category}</div>
                   </div>
