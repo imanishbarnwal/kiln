@@ -6,12 +6,13 @@
 
 **A sovereign atelier for AI experts. Mint your AI coach as an iNFT you own forever. Rent it by the session. Sell it like any other asset.**
 
-[![Status](https://img.shields.io/badge/Status-LIVE-brightgreen?style=for-the-badge)](#live-deployments)
-[![Built on 0G](https://img.shields.io/badge/Built_on-0G-FF5A1F?style=for-the-badge&labelColor=0B0604)](https://0g.ai)
+[![Live demo](https://img.shields.io/badge/Live_demo-kiln--virid--rho.vercel.app-FF5A1F?style=for-the-badge&labelColor=0B0604)](https://kiln-virid-rho.vercel.app)
+[![Built on 0G](https://img.shields.io/badge/Built_on-0G-A78BFA?style=for-the-badge&labelColor=0B0604)](https://0g.ai)
+[![ENS](https://img.shields.io/badge/ENS-kiln.eth-5298FF?style=for-the-badge&labelColor=0B0604)](https://app.ens.domains/kiln.eth)
 [![Network](https://img.shields.io/badge/Network-Galileo_16602-E8BB5A?style=for-the-badge&labelColor=2A1710)](https://chainscan-galileo.0g.ai)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
 
-[Contracts](#live-deployments) &nbsp;·&nbsp; [How it works](#how-it-works-in-one-diagram) &nbsp;·&nbsp; [Quickstart](#quickstart--run-it-locally) &nbsp;·&nbsp; [Trust model](#trust-model--honest-disclosures)
+[Live demo](https://kiln-virid-rho.vercel.app) &nbsp;·&nbsp; [Contracts](#live-deployments) &nbsp;·&nbsp; [How it works](#how-it-works-in-one-diagram) &nbsp;·&nbsp; [Quickstart](#quickstart--run-it-locally) &nbsp;·&nbsp; [Trust model](#trust-model--honest-disclosures)
 
 </div>
 
@@ -43,6 +44,10 @@ Built end-to-end on the **0G** stack: Storage for encrypted artifacts, Compute f
 ---
 
 ## Live deployments
+
+**Demo URL ·** [`kiln-virid-rho.vercel.app`](https://kiln-virid-rho.vercel.app) (frontend on Vercel · connect a wallet on Galileo to mint, rent, transfer)
+
+> Council mode (`/council`) requires the AXL mesh running locally · clone the repo and run `axl/start.sh` plus `pnpm council:synth` to see it live. The other flows (mint, marketplace, chat with RAG, ENS claim, transfer) work end-to-end on the demo URL.
 
 All three Kiln contracts are live on the **0G Galileo testnet** (chain id `16602`, RPC `https://evmrpc-testnet.0g.ai`).
 
@@ -419,12 +424,19 @@ Rent-session inference and endSession settlement both sign from the `KILN_OPS_PK
 
 ## Roadmap
 
-- **v1 (shipped)** · Mint, rent, transfer, 30-min timer, coach-set pricing, per-iNFT persona on chain, alchemical constellation avatars, intelligence-embedded proof panel.
-- **v2 · embeddings + real training.** Upgrade BM25 retrieval to embeddings via 0G Compute's embedding endpoint when it lands. Then add real fine-tuning by kicking off a LoRA job on 0G Compute at mint time and storing the adapter's root hash on the iNFT.
-- **v2 · real TEE verifier.** Swap `KilnMockVerifier` for 0G TeeML's production verifier. No application changes required.
-- **v2 · reputation.** Index `SessionEnded` events per token, feed the session count + average rating into `KilnAvatar.reputation`. The avatar already reads the parameter; it is pinned at 0 today.
-- **v2 · mainnet.** Deploy the three contracts on Aristotle (chain id `16661`) and list on the AIverse iNFT marketplace.
-- **v2 · contract-level session expiry.** Add `expiresAt` to the session struct and a public `forceSettle` for anyone-can-sweep after expiry.
+### Shipped today
+ERC-7857 mint and transfer · marketplace with per-session and per-day pricing · 30-minute session timer with auto-settle · per-iNFT persona on chain (`dataDescriptions[0]`) · `refine()` for coaches to evolve their voice · BM25 retrieval over uploaded notes · ENS subnames on Sepolia (`<label>.kiln.eth`) · Council mode over a two-node Gensyn AXL mesh · alchemical-constellation avatars hashed from each token id · intelligence-embedded proof panel that decodes on-chain state live.
+
+### Next (post-hackathon, ordered by impact)
+
+1. **Real fine-tuning.** Kick off a LoRA job on 0G Compute at mint time and store the adapter's root hash in `dataHashes`. BM25 stays as the fallback retrieval layer for non-fine-tuned coaches.
+2. **Reputation on chain.** Index `SessionEnded` events per token and feed session count + average rating into `KilnAvatar.reputation`. The avatar component already reads the parameter · it is pinned at 0 today.
+3. **Production TEE verifier.** Swap `KilnMockVerifier` for 0G TeeML's production verifier. No application changes required · the interface is already correct.
+4. **Mainnet.** Deploy the three contracts on Aristotle (chain id `16661`) and list on the AIverse iNFT marketplace.
+5. **Embedding-based retrieval.** Upgrade BM25 to dense embeddings once 0G Compute exposes an embedding endpoint. Better recall on conceptual queries; BM25 stays the deterministic fallback.
+
+### Later
+Encrypted chat-transcript backup to 0G Storage · contract-level session expiry with anyone-can-sweep settle · dispute resolution flow for sessions a student claims went badly · payout splits for collaborative coaches.
 
 ## License
 
