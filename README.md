@@ -6,7 +6,6 @@
 
 **A sovereign atelier for AI experts. Mint your AI coach as an iNFT you own forever. Rent it by the session. Sell it like any other asset.**
 
-[![Live demo](https://img.shields.io/badge/Live_demo-kiln--virid--rho.vercel.app-FF5A1F?style=for-the-badge&labelColor=0B0604)](https://kiln-virid-rho.vercel.app)
 [![Built on 0G](https://img.shields.io/badge/Built_on-0G-A78BFA?style=for-the-badge&labelColor=0B0604)](https://0g.ai)
 [![ENS](https://img.shields.io/badge/ENS-kiln.eth-5298FF?style=for-the-badge&labelColor=0B0604)](https://app.ens.domains/kiln.eth)
 [![Network](https://img.shields.io/badge/Network-Galileo_16602-E8BB5A?style=for-the-badge&labelColor=2A1710)](https://chainscan-galileo.0g.ai)
