@@ -196,6 +196,33 @@ export default function CouncilPage() {
 
         <div className="kiln-rule mb-10" />
 
+        {/* Local-only notice · the AXL mesh requires two node binaries running
+            on the developer's machine. The deployed URL cannot reach them. */}
+        <div className="mb-10 flex items-start gap-4 border border-[var(--kiln-gold)]/40 bg-[color:rgba(232,187,90,0.06)] rounded-sm p-5">
+          <span className="mt-0.5 shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-full bg-[var(--kiln-gold)]/20 text-[var(--kiln-gold)] font-mono text-xs">
+            !
+          </span>
+          <div className="space-y-2 min-w-0">
+            <div className="kiln-label text-[var(--kiln-gold)]">
+              Council requires a local AXL mesh
+            </div>
+            <p className="text-sm text-[var(--kiln-fg-1)] leading-relaxed">
+              Convene runs two AXL node binaries that talk over an encrypted
+              peer mesh. Those binaries live on the developer&apos;s machine, so
+              this page cannot reach them from a deployed URL. To try it
+              yourself, clone the repo and run{' '}
+              <span className="font-mono text-[var(--kiln-fg-0)]">pnpm council:up</span>{' '}
+              before opening{' '}
+              <span className="font-mono text-[var(--kiln-fg-0)]">localhost:3000/council</span>.
+            </p>
+            <p className="text-xs font-mono text-[var(--kiln-fg-2)] leading-relaxed">
+              The marketplace, profile, chat, and intelligence panels all work
+              against the live deployment as expected · only Council needs the
+              local mesh.
+            </p>
+          </div>
+        </div>
+
         {/* Step 1 · pick coaches */}
         <div className="mb-10">
           <div className="flex items-baseline justify-between mb-4">
