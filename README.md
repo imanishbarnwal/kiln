@@ -11,7 +11,7 @@
 [![Network](https://img.shields.io/badge/Network-Galileo_16602-E8BB5A?style=for-the-badge&labelColor=2A1710)](https://chainscan-galileo.0g.ai)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
 
-[Live demo](https://kiln-virid-rho.vercel.app) &nbsp;·&nbsp; [Contracts](#live-deployments) &nbsp;·&nbsp; [How it works](#how-it-works-in-one-diagram) &nbsp;·&nbsp; [Quickstart](#quickstart--run-it-locally) &nbsp;·&nbsp; [Trust model](#trust-model--honest-disclosures)
+[Live demo](https://kiln-virid-rho.vercel.app) &nbsp;·&nbsp; [Architecture](docs/ARCHITECTURE.md) &nbsp;·&nbsp; [Trust model](docs/TRUST-MODEL.md) &nbsp;·&nbsp; [Council](docs/COUNCIL.md)
 
 </div>
 
@@ -21,32 +21,13 @@ Kiln is a sovereign atelier for AI experts. A chess grandmaster, a yoga teacher,
 
 Built end-to-end on the **0G** stack: Storage for encrypted artifacts, Compute for verifiable inference, Chain for the iNFT and marketplace contracts.
 
-## Table of contents
-
-- [Live deployments](#live-deployments)
-- [How it works in one diagram](#how-it-works-in-one-diagram)
-- [Three on-chain flows](#three-on-chain-flows)
-  - [Mint](#mint)
-  - [Rent](#rent)
-  - [Transfer](#transfer)
-- [The single question that matters](#the-single-question-that-matters-how-does-the-chat-know-who-it-is)
-- [ENS subnames · iNFTs you can name](#ens-subnames--infts-you-can-name)
-- [Council mode · two AXL nodes, one verdict](#council-mode--two-axl-nodes-one-verdict)
-- [Tech stack](#tech-stack)
-- [Repo layout](#repo-layout)
-- [Smart contracts](#smart-contracts)
-- [Quickstart · run it locally](#quickstart--run-it-locally)
-- [Trust model · honest disclosures](#trust-model--honest-disclosures)
-- [Roadmap](#roadmap)
-- [License](#license)
-
 ---
 
 ## Live deployments
 
 **Demo URL ·** [`kiln-virid-rho.vercel.app`](https://kiln-virid-rho.vercel.app) (frontend on Vercel · connect a wallet on Galileo to mint, rent, transfer)
 
-> Council mode (`/council`) requires the AXL mesh running locally · clone the repo and run `axl/start.sh` plus `pnpm council:synth` to see it live. The other flows (mint, marketplace, chat with RAG, ENS claim, transfer) work end-to-end on the demo URL.
+> Council mode (`/council`) requires the AXL mesh running locally. See [docs/COUNCIL.md](docs/COUNCIL.md) for the local run-order. The other flows (mint, marketplace, chat with RAG, ENS claim, transfer) work end-to-end on the demo URL.
 
 All three Kiln contracts are live on the **0G Galileo testnet** (chain id `16602`, RPC `https://evmrpc-testnet.0g.ai`).
 
@@ -62,11 +43,11 @@ A fourth contract lives on the **Sepolia ENS registry** (chain id `11155111`) so
 |---|---|---|
 | `KilnSubnameRegistrar` | `0xbd55D3bB25Ac799d3E463b6945C570045aC1a90a` | [view](https://sepolia.etherscan.io/address/0xbd55D3bB25Ac799d3E463b6945C570045aC1a90a) |
 
-The marketplace is seeded with coaches across Chess, Wellness, Startup, Languages, and Math. Every listed token is queryable with `KilnAgentNFT.dataDescriptionsOf(tokenId)` · the persona (name, category, blurb, system prompt) is committed on chain, not in a database.
+The marketplace is seeded with coaches across Chess, Wellness, Startup, Languages, and Math. Every listed token's persona is queryable on chain via `KilnAgentNFT.dataDescriptionsOf(tokenId)`. Coaches who claim an ENS subname get a route slug for free: `/chat/mira` and `/chat/mira.kiln.eth` both resolve to the same iNFT.
 
-Coaches who claim an ENS subname get a route slug for free: `/chat/mira` and `/chat/mira.kiln.eth` both resolve to the same iNFT.
+---
 
-## How it works in one diagram
+## How it works
 
 ```
                          ┌──────────────────────────────────────┐
@@ -90,6 +71,8 @@ Coaches who claim an ENS subname get a route slug for free: `/chat/mira` and `/c
 
 **Every piece is load-bearing.** Storage holds the encrypted training material and gets a Merkle root committed to the iNFT so no one can tamper silently. Compute runs the inference inside a TEE so buyers cannot exfiltrate weights. Chain holds the iNFT, the listing, the session, the payout split. Remove any one and the sovereignty story breaks.
 
+For the layer-by-layer expansion · the three on-chain flows (mint, rent, transfer), the "how does the chat know who it is?" walkthrough, ENS subnames, the contracts reference, and the repo layout · read [**docs/ARCHITECTURE.md**](docs/ARCHITECTURE.md).
+
 <p align="center">
   <a href="https://0g.ai" target="_blank">
     <img src="assets/0g-wordmark-purple.svg" alt="0G" width="120" />
@@ -97,336 +80,61 @@ Coaches who claim an ENS subname get a route slug for free: `/chat/mira` and `/c
 </p>
 <p align="center"><sub>Powered by <a href="https://0g.ai">0G</a> · Storage, Compute, Chain, and the ERC-7857 standard.</sub></p>
 
-## Three on-chain flows
+---
 
-### Mint
+## Documentation
 
-A coach fills out their name, category, blurb, and system prompt on `/onboard`, drops their training files, and clicks **Fire Model**.
+| Doc | What it answers |
+|---|---|
+| [**docs/ARCHITECTURE.md**](docs/ARCHITECTURE.md) | How is Kiln built? What does each layer do? How do mint, rent, and transfer work on chain? How does the chat know who it is? What's in the contracts? |
+| [**docs/TRUST-MODEL.md**](docs/TRUST-MODEL.md) | What's real versus simplified for the demo? Where are the stand-ins (verifier, executor, fine-tuning)? What does v2 look like? |
+| [**docs/COUNCIL.md**](docs/COUNCIL.md) | Why two AXL nodes? How do you set up the local mesh? What does each phase of a Convene click look like? |
 
-1. The browser generates a 256-bit AES-GCM key, encrypts the files client-side, and uploads the ciphertext to 0G Storage via `@0gfoundation/0g-ts-sdk`. A Merkle root comes back.
-2. The browser computes `sha256(ciphertext)` and serializes the persona as JSON.
-3. The coach's wallet signs `KilnAgentNFT.mint(proofs, dataDescriptions, to)` where:
-   - `proofs[0]` = the sha256 hash (accepted by our mock verifier as the preimage)
-   - `dataDescriptions[0]` = the persona JSON blob, prefixed with `kiln:v1:`
-4. The token ends up in the coach's wallet. The persona is now public, tamper-evident, and readable by anyone on chain.
-
-### Rent
-
-On `/chat/[tokenId]`, a student hits **Start session**.
-
-1. `KilnMarket.startSession{value: pricePerSession}(tokenId)` runs. Payment sits in contract escrow. A `SessionStarted` event fires.
-2. Client starts a 30-minute countdown, persists the start timestamp in `sessionStorage`.
-3. On each chat message, the client POSTs to `/api/inference/session/:id`. The server:
-   - Reads the session on chain (must exist, must not be settled)
-   - Reads `KilnAgentNFT.isAuthorized(tokenId, executor)` (wiped on transfer, so a post-transfer call 403s)
-   - Reads `KilnAgentNFT.dataDescriptionsOf(tokenId)` to pull the persona
-   - Prepends the system prompt, streams through 0G Compute (Qwen 2.5 7B in a TEE)
-   - Pipes the SSE response back to the browser token by token
-4. When the timer hits 0 (or the student clicks **End session**), the frontend pings `/api/session/end`. Our ops wallet, the configured executor, signs `KilnMarket.endSession(sessionId, rating)`. Payout splits **90 / 8 / 2** to owner / treasury / ecosystem, all in a single tx.
-5. A coach looking at `/profile` sees the same live timer on their iNFT's row, including the student's short address. Auto-settle is idempotent, so whichever page (coach's or student's) hits 0:00 first is the one that broadcasts the settle tx.
-
-### Transfer
-
-The owner calls `KilnAgentNFT.transfer(to, tokenId, proofs)` from their wallet.
-
-1. Our TEE proof-builder route `/api/transfer/proof` produces a `proofs[]` encoded as `abi.encode(bytes32 oldHash, bytes32 newHash, address receiver, bytes16 sealedKey)`.
-2. The on-chain verifier returns `isValid = true`, the contract swaps owner, sets the new dataHash, and **wipes the `authorizedUsers` array**.
-3. Result: the old owner's executor is no longer authorized. Any request against any prior session for this token now returns **403 executor no longer authorized for this iNFT**. Loss-of-access is provable without running a single test script · just read the contract.
-
-## The single question that matters · how does the chat know who it is?
-
-When you chat with **GM Alina Volkov** (iNFT #3), the underlying model is **not fine-tuned** on chess. It is Qwen 2.5 7B Instruct · a general-purpose instruction-following model running inside a 0G Compute TEE. What makes it reply like Alina instead of like Aarav is two things, both committed on chain:
-
-1. The **system prompt** stored in `dataDescriptions[0]`, which sets her voice, register, and teaching style.
-2. The coach's **uploaded notes**, chunked into a manifest in 0G Storage and **BM25-retrieved at chat time** so Alina can quote her own material verbatim instead of inventing answers.
-
-Alina's iNFT stores this JSON in `dataDescriptions[0]` on Galileo:
-
-```json
-{
-  "name": "GM Alina Volkov",
-  "category": "Chess",
-  "blurb": "Russian-school grandmaster. Positional play and Capablanca endgames.",
-  "systemPrompt": "You are GM Alina Volkov, a Russian-school chess grandmaster rated 2620. Teach with patience. Emphasize positional play, prophylaxis, and Capablanca-style endgames. Short paragraphs. Ask one clarifying question per reply when the position is ambiguous. Reference classical games (Kasparov vs Karpov 1985 Game 16, Capablanca vs Marshall 1918, Fischer vs Spassky Game 6). Never just give the move. Teach the reason. When discussing a position, include exactly one [fen <FEN-STRING>] tag in your reply so the UI can render it."
-}
-```
-
-The server reads that blob fresh from chain on every chat request. If the persona has a `ragHash` field, the server also fetches the chunked notes manifest from 0G Storage, runs **BM25** against the student's latest message, and prepends the top-3 retrieved passages to the system prompt as `Reference material from <coach name>'s notebook · cite by [#index] when you use it:`. The combined prompt then streams through 0G Compute (Qwen 2.5 7B in a TEE).
-
-Why BM25 instead of embeddings: zero model dependency, instant cold-start, deterministic, and it actually outperforms naive embeddings on keyword-heavy domains (chess openings, asanas, frameworks). Every character of the coach's voice plus the cited material is verifiably on chain or in 0G Storage. On `/chat/[id]` the **"Intelligence · embedded on 0G Chain"** panel decodes the blob live from the contract and shows the manifest hash + chunk count so you can verify this yourself.
-
-## ENS subnames · iNFTs you can name
-
-`KilnSubnameRegistrar` on Sepolia turns each iNFT into a permanent `<label>.kiln.eth` subname so coaches show up across every ENS-aware client, not just inside Kiln.
-
-How a claim works:
-
-1. From `/profile`, an iNFT owner picks a label (`mira`). The modal hits the live registrar to confirm it's free.
-2. The user signs a tiny EIP-191 message (`Kiln · claim mira.kiln.eth for iNFT #5`). No chain switch · the wallet stays on Galileo.
-3. `/api/ens/claim` recovers the signer, confirms `KilnAgentNFT.ownerOf(tokenId)` matches, and the **ops wallet** (which already paid for the parent name) submits the actual `register` tx on Sepolia. Cost to the user: zero gas.
-4. The registrar sets the subname's `addr` record to the iNFT owner, writes `kiln.tokenId`, `kiln.chain`, `description`, and `url` text records, then **transfers ownership of the subnode to the user** so they manage records via the standard ENS app afterwards.
-
-What that buys the rest of the app:
-
-- `/chat/mira.kiln.eth` and `/chat/mira` both resolve via the registrar's `subnodeToken` mapping and route to the canonical numeric tokenId. Bare numbers (`/chat/5`) still work.
-- The marketplace search box accepts subnames (with or without the `.kiln.eth` suffix) and matches on the same label that's stored on chain.
-- Wallet → name resolution for the app's own UI (the Transfer modal, the rep card, the chat masthead) still uses **mainnet ENS** through the existing `lib/ens.ts` reverse-lookup helper. The two namespaces don't conflict.
-
-## Council mode · two AXL nodes, one verdict
-
-`/council` lets a student ask the same question to multiple coaches and watch a synthesizer combine the replies into a single verdict. The synthesis runs on a different process behind the **Gensyn AXL** peer-to-peer mesh, so the work is provably off-orchestrator · the architecture is unchanged whether both nodes are on `127.0.0.1` (the demo box) or on two separate machines on the public internet.
-
-Two AXL nodes back the flow:
-
-| Node  | API bridge          | Holds                                                  |
-|-------|---------------------|--------------------------------------------------------|
-| coach | `127.0.0.1:9102`    | The Next orchestrator on the same machine talks to it |
-| synth | `127.0.0.1:9112`    | A standalone synth daemon (`pnpm council:synth`)      |
-
-Each node has a persistent ed25519 keypair · its peer id is the hex of the public key. Messages are JSON envelopes `{ kind, queryId, payload }` shipped through the encrypted Yggdrasil + gVisor TCP transport that AXL provides.
-
-End-to-end of one Convene click:
-
-1. Browser POSTs `{ tokenIds, question }` to `/api/council`.
-2. The route reads each picked iNFT's persona from `dataDescriptions[0]` on chain and runs inference per coach against 0G Compute in parallel.
-3. The route packs the per-coach replies into one envelope of kind `council/synthesize` and ships it to the synth peer over `coach.localhost:9102/send`.
-4. `web/src/server/council-synth-worker.ts`, polling `synth.localhost:9112/recv` in a separate process, picks the envelope up, runs a synthesis prompt against 0G Compute (Qwen 2.5 7B) that asks for a 6-sentence verdict ending with `Verdict: …`.
-5. The synth worker ships a `council/result` envelope back over `synth.localhost:9112/send` to the coach peer id.
-6. The orchestrator's long-poll on `coach.localhost:9102/recv` matches the `queryId` and returns both the per-coach replies and the synthesized verdict to the browser.
-
-Run order locally:
-
-```bash
-cd axl && ./start.sh                # boot both AXL nodes
-cd web && pnpm council:synth        # synth daemon
-cd web && pnpm dev                  # Next orchestrator
-# open http://localhost:3000/council
-```
-
-What this proves about the AXL transport: the synthesis call **never** appears in the orchestrator's process · it lands in the synth worker, which only knows how to reach the orchestrator through AXL's mesh routing. There is no shared Redis, no localhost socket, no shared database. Move the synth machine to another datacenter and only the AXL `Peers` config changes.
-
-## Tech stack
-
-Pinned versions, the live ones in `web/package.json` and `contracts/foundry.toml`.
-
-| Layer | Library | Version | Why |
-|---|---|---|---|
-| Frontend | Next.js | `16.2.4` | App Router, Turbopack, route handlers |
-| | React | `19.2.4` | |
-| | Tailwind | `4` | Palette-driven via CSS custom properties |
-| | Privy | `@privy-io/react-auth@3` + `@privy-io/wagmi@4` | Email / Google / external wallet onboarding |
-| | ethers | `^6.16` | Wallet signer wrapping the EIP-1193 provider |
-| | viem | `^2.48` | Chain definitions, ABIs, event log parsing |
-| | Fraunces + Geist | Google Fonts | Display serif + utility sans + mono mark type |
-| Contracts | Solidity | `0.8.24`, `evm_version = cancun` | Required for 0G Chain |
-| | Foundry | `1.5.1-stable` | Build + test + deploy |
-| | OpenZeppelin | `5.6.1` | Access control for contract admin |
-| | 0g-agent-nft | `eip-7857-draft` branch | Reference ERC-7857 we compare against |
-| 0G SDKs | `@0gfoundation/0g-ts-sdk` | `1.2.1` | Storage indexer + upload + download |
-| | `@0glabs/0g-serving-broker` | `0.7.5` | Compute ledger + TEE inference |
-
-**Important scope note:** the Compute SDK is still under the legacy `@0glabs` namespace while Storage moved to `@0gfoundation`. This tripped us for hours · the older `@0glabs/0g-ts-sdk@0.3.3` is abandoned and reverts at `estimateGas` on Galileo. Always use `@0gfoundation/0g-ts-sdk` for Storage.
-
-## Repo layout
-
-```
-kiln/
-├── contracts/                       Foundry project
-│   ├── src/
-│   │   ├── KilnAgentNFT.sol        non-upgradeable IERC7857 implementation
-│   │   ├── KilnMarket.sol          listing + sessions + licenses + split
-│   │   └── KilnMockVerifier.sol    IERC7857DataVerifier stand-in for demo
-│   ├── test/
-│   │   ├── KilnAgentNFT.t.sol      7 tests, mint/transfer/authorizeUsage/clone
-│   │   └── KilnMarket.t.sol        13 tests, pricing/split/licenses/admin
-│   └── script/DeployTestnet.s.sol
-│
-└── web/                             Next.js 16 app
-    ├── src/
-    │   ├── app/
-    │   │   ├── page.tsx             landing
-    │   │   ├── onboard/             upload + mint
-    │   │   ├── market/              catalog
-    │   │   ├── profile/             coach studio with live-session timers
-    │   │   ├── chat/[tokenId]/      pay + stream + transfer
-    │   │   └── api/
-    │   │       ├── storage/upload/  @0gfoundation/0g-ts-sdk round-trip
-    │   │       ├── inference/session/[id]/  streaming proxy w/ auth gate
-    │   │       ├── session/end/     executor-signed settlement
-    │   │       └── transfer/proof/  TEE proof-builder for ERC-7857 transfer
-    │   ├── components/
-    │   │   ├── kiln-avatar.tsx      procedural constellation per iNFT
-    │   │   ├── intelligence-panel.tsx   on-chain persona proof
-    │   │   ├── session-timer.tsx    30-min countdown w/ auto-settle
-    │   │   ├── logo-concepts.tsx    brand mark (Concept E Stamp & Flame)
-    │   │   ├── transfer-modal.tsx
-    │   │   ├── list-modal.tsx
-    │   │   ├── chat-stream.tsx      SSE parser + inline chessboard
-    │   │   ├── upload-guide.tsx     what-to-upload examples
-    │   │   └── site-chrome.tsx      nav + footer
-    │   └── lib/
-    │       ├── storage/             pluggable backend (0G + local fallback)
-    │       ├── compute.ts           ledger + TEE inference broker
-    │       ├── persona.ts           dataDescriptions[0] ↔ JSON
-    │       ├── use-persona.ts       client hook + batch reader
-    │       ├── active-sessions.ts   SessionStarted event scanner
-    │       ├── encryption.ts        AES-256-GCM helpers
-    │       ├── contracts.ts         ABIs + addresses by chain
-    │       └── chains.ts            Galileo + Aristotle definitions
-    └── scripts/
-        ├── seed-mint.ts             mint 5 sample coaches
-        ├── smoke-storage.ts         verify Storage round-trip
-        └── smoke-compute.ts         verify Compute round-trip
-```
-
-## Smart contracts
-
-### KilnAgentNFT
-
-A non-upgradeable ERC-7857 implementation. Chose not to fork the upgradeable reference because a proxy rollout is unnecessary for a hackathon deployment and adds friction to the demo.
-
-Key functions:
-
-```solidity
-function mint(bytes[] proofs, string[] dataDescriptions, address to)
-    returns (uint256 tokenId);
-
-function transfer(address to, uint256 tokenId, bytes[] proofs);
-
-function clone(address to, uint256 tokenId, bytes[] proofs)
-    returns (uint256 newTokenId);
-
-function authorizeUsage(uint256 tokenId, address user);
-
-function dataDescriptionsOf(uint256 tokenId) view returns (string[]);
-function dataHashesOf(uint256 tokenId) view returns (bytes32[]);
-function ownerOf(uint256 tokenId) view returns (address);
-function authorizedUsersOf(uint256 tokenId) view returns (address[]);
-function isAuthorized(uint256 tokenId, address user) view returns (bool);
-```
-
-A transfer wipes `authorizedUsers` for the token, which is what makes "seller provably loses access" real rather than aspirational.
-
-### KilnMarket
-
-Listing, per-session rent, bulk license, payout split, ecosystem fund.
-
-```solidity
-function list(uint256 tokenId, uint256 pricePerSession,
-              uint256 licensePricePerDay, string metadataURI);
-
-function startSession(uint256 tokenId) payable returns (uint256 sessionId);
-function endSession(uint256 sessionId, uint8 rating); // executor-only
-
-function startLicense(uint256 tokenId, uint256 durationDays, uint256 seats)
-    payable returns (uint256 licenseId);
-function revokeLicense(uint256 licenseId);
-
-function setExecutor(address newExecutor); // admin
-function withdrawEcosystem(address to, uint256 amount); // admin
-```
-
-Split: 90% owner, 8% treasury, 2% ecosystem fund (retained in contract). Bulk licenses settle immediately on `startLicense`; sessions escrow and settle on `endSession`.
-
-### KilnMockVerifier
-
-Accepts any 32-byte preimage proof and any correctly-encoded transfer proof as `isValid = true`. Documented in the source file as the hackathon stand-in for 0G's TeeML verifier. Replacing with the real verifier on mainnet is a one-line change.
+---
 
 ## Quickstart · run it locally
 
-### Prerequisites
-
-- Node.js 20 or later (24 LTS recommended)
-- pnpm 9 or later
-- Foundry (`curl -L https://foundry.paradigm.xyz | bash && foundryup`)
-- A wallet with some Galileo testnet OG (get from `https://faucet.0g.ai`)
-
-### Install
-
 ```bash
-git clone <this-repo> kiln && cd kiln
+git clone https://github.com/imanishbarnwal/kiln && cd kiln
 pnpm install
+cp web/.env.example web/.env.local      # fill in PRIVY_APP_ID, KILN_OPS_PK
+cp contracts/.env.example contracts/.env # only if you want to redeploy
 
-# Foundry deps
-cd contracts && forge install && cd ..
-```
-
-### Configure
-
-```bash
-# Frontend secrets
-cp web/.env.example web/.env.local
-# Fill in:
-#   NEXT_PUBLIC_PRIVY_APP_ID        — from https://dashboard.privy.io
-#   KILN_OPS_PK                     — private key of a funded Galileo wallet
-#   KILN_OPS_ADDRESS                — the address of that wallet
-#   NEXT_PUBLIC_KILN_OPS_ADDRESS    — same address, exposed to client
-#
-# Contract addresses default to our live Galileo deployment.
-
-# Contract secrets (only needed if you want to redeploy)
-cp contracts/.env.example contracts/.env
-# Fill in DEPLOYER_PK, TREASURY, EXECUTOR
-```
-
-### Run
-
-```bash
-# run contract tests (20 pass)
-cd contracts && forge test -vv
-
-# deploy to Galileo (optional, uses our addresses by default)
-set -a && source .env && set +a
-forge script script/DeployTestnet.s.sol --rpc-url galileo --broadcast \
-  --priority-gas-price 2000000000 --with-gas-price 5000000000 -vv
-
-# start the frontend
-cd ../web && pnpm dev
-# open http://localhost:3000
-```
-
-### Smoke tests
-
-Confirm Storage and Compute round-trip from your wallet before doing anything with the UI.
-
-```bash
+# verify Storage and Compute round-trip from your wallet
 cd web
-pnpm dlx tsx scripts/smoke-storage.ts     # uploads 1 KB, reads it back
-pnpm dlx tsx scripts/smoke-compute.ts     # one Qwen 2.5 7B chat round-trip
+pnpm dlx tsx scripts/smoke-storage.ts
+pnpm dlx tsx scripts/smoke-compute.ts
+
+# start the app
+pnpm dev      # open http://localhost:3000
+
+# (optional) seed 5 sample coaches
+pnpm dlx tsx scripts/seed-mint.ts
+
+# (optional) Council mode requires the local AXL mesh
+# see docs/COUNCIL.md for the three-terminal run order
 ```
 
-If either errors, the rest will not work. Check your `.env.local` and wallet balance first.
+Prerequisites: Node 20+, pnpm 9+, [Foundry](https://book.getfoundry.sh/getting-started/installation), a wallet funded with Galileo testnet OG from [the faucet](https://faucet.0g.ai). Contract addresses default to our live Galileo deployment so you don't need to redeploy unless you want to.
 
-### Seed the marketplace
+---
 
-```bash
-cd web && pnpm dlx tsx scripts/seed-mint.ts
-```
+## Trust model · the short version
 
-Mints five sample coaches (Chess, Wellness, Startup, Languages, Math) owned by the ops wallet and lists them on the market. Uses ~0.05 OG of gas.
+Three things a careful reader should know up front. The full disclosures live in [**docs/TRUST-MODEL.md**](docs/TRUST-MODEL.md).
 
-## Trust model · honest disclosures
+1. **The model is not yet fine-tuned on coach uploads.** Files are encrypted on chain as tamper-evident provenance. Inference uses Qwen 2.5 7B with the persona's system prompt plus BM25 retrieval over the coach's notes manifest. Honest framing: we're closer to "extremely well-prompted RAG" than to "the coach's personality has been baked into the weights." Fine-tuning ships when 0G Compute exposes a training API.
+2. **The verifier is a demo stand-in.** `KilnMockVerifier` accepts any correctly-formatted proof. Migrating to 0G's production TeeML verifier is a one-line admin call.
+3. **The executor is a single server-side wallet.** Authorized via `authorizeUsage`, wiped on transfer · which is what makes "seller provably loses access" real. Decentralizing across the 0G Compute provider mesh is the v2 path.
 
-We prefer accuracy over marketing. Four things we want a careful reader to know.
-
-**1. The training files are not yet used by inference.**
-Files a coach uploads are encrypted in the browser with AES-256-GCM, pinned to 0G Storage, and committed on chain as `dataHashes[0]` · the encrypted artifact is the **tamper-evident provenance** record. In parallel, the readable text content is chunked into a separate manifest stored unencrypted in 0G Storage; that manifest's root hash is committed inside the persona JSON as `ragHash`. The inference route fetches the manifest at chat time, runs **BM25** over the chunks against the student's latest question, and injects the top-3 results into the system prompt so the coach can quote their own material. Honest framing: the encrypted artifact is the private original (lecture-notes-grade); the manifest is the publicly-readable corpus (syllabus-grade) that any verifier can audit. Path to v2: replace BM25 with embeddings via 0G Compute's embedding endpoint when it ships, and add real fine-tuning when 0G Compute exposes a training API.
-
-**2. The verifier is a demo stand-in.**
-`KilnMockVerifier` accepts any correctly-formatted proof. In production you would deploy `TeeVerifier.sol` from the 0G reference and register it as the `verifier()` of `KilnAgentNFT`. That is a one-function admin call. The rest of the contract does not change.
-
-**3. The executor is a single server-side wallet.**
-Rent-session inference and endSession settlement both sign from the `KILN_OPS_PK` wallet because it is the address the owner authorized via `authorizeUsage`. For production you would either (a) have the coach run their own inference provider, (b) decentralize the executor role via 0G Compute's provider network, or (c) use a TEE attestation chain so the executor is a pool of attested enclaves.
-
-**4. Sessions are 30 minutes, time-limited client-side.**
-`DEFAULT_SESSION_SECONDS = 30 * 60`. The countdown runs in the browser; when it hits zero the frontend fires `/api/session/end` which settles on chain. If every browser tab for a session is closed, the payment stays escrowed until the coach manually settles from `/profile`. For production we would add either a contract-level `expiresAt` on each session with an anyone-can-sweep `forceSettle()`, or a server cron that reaps abandoned sessions. Keep listed here so nothing is smuggled past a careful reader.
+---
 
 ## Roadmap
 
 ### Shipped today
-ERC-7857 mint and transfer · marketplace with per-session and per-day pricing · 30-minute session timer with auto-settle · per-iNFT persona on chain (`dataDescriptions[0]`) · `refine()` for coaches to evolve their voice · BM25 retrieval over uploaded notes · ENS subnames on Sepolia (`<label>.kiln.eth`) · Council mode over a two-node Gensyn AXL mesh · alchemical-constellation avatars hashed from each token id · intelligence-embedded proof panel that decodes on-chain state live.
+ERC-7857 mint, transfer, refine · marketplace with per-session and per-day pricing · 30-minute session timer with auto-settle · per-iNFT persona on chain (`dataDescriptions[0]`) · BM25 retrieval over uploaded notes · ENS subnames on Sepolia (`<label>.kiln.eth`) · Council mode over a two-node Gensyn AXL mesh · alchemical-constellation avatars hashed from each token id · intelligence-embedded proof panel that decodes on-chain state live.
 
-### Next (post-hackathon, ordered by impact)
+### Next, ordered by impact
 
 1. **Real fine-tuning.** Kick off a LoRA job on 0G Compute at mint time and store the adapter's root hash in `dataHashes`. BM25 stays as the fallback retrieval layer for non-fine-tuned coaches.
 2. **Reputation on chain.** Index `SessionEnded` events per token and feed session count + average rating into `KilnAvatar.reputation`. The avatar component already reads the parameter · it is pinned at 0 today.
@@ -435,7 +143,9 @@ ERC-7857 mint and transfer · marketplace with per-session and per-day pricing �
 5. **Embedding-based retrieval.** Upgrade BM25 to dense embeddings once 0G Compute exposes an embedding endpoint. Better recall on conceptual queries; BM25 stays the deterministic fallback.
 
 ### Later
-Encrypted chat-transcript backup to 0G Storage · contract-level session expiry with anyone-can-sweep settle · dispute resolution flow for sessions a student claims went badly · payout splits for collaborative coaches.
+Encrypted chat-transcript backup to 0G Storage · contract-level session expiry with anyone-can-sweep settle · dispute resolution for sessions a student claims went badly · payout splits for collaborative coaches.
+
+---
 
 ## License
 
