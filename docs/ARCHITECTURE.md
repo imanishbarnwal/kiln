@@ -190,9 +190,34 @@ function withdrawEcosystem(address to, uint256 amount); // admin
 
 Split: 90% owner, 8% treasury, 2% ecosystem fund (retained in contract). Bulk licenses settle immediately on `startLicense`; sessions escrow and settle on `endSession`.
 
-### KilnMockVerifier
+### KilnAttestationOracle
 
-Accepts any 32-byte preimage proof and any correctly-encoded transfer proof as `isValid = true`. Documented in the source file as the demo stand-in for 0G's TeeML verifier. Replacing with the real verifier on mainnet is a one-line admin call. See [TRUST-MODEL.md](TRUST-MODEL.md) for the full disclosure.
+**`KilnAttestationOracle`** — implements the canonical `IERC7857DataVerifier` interface. Verifies ECDSA signatures over extended proof envelopes carrying a nonce, expiry, and either a preimage (mint / refine / update) or transfer-validity (transfer / clone) payload. Stamps each `(signer, nonce)` pair as used so a proof cannot be replayed. Admin can rotate trusted signers and toggle `mockMode` (used on Galileo for the demo flow; always `false` on Aristotle, locked via `lockMainnetMode()` after deploy).
+
+The proof envelope shapes:
+
+- **Preimage proof:** `abi.encode(bytes32 dataHash, uint256 nonce, uint256 expiry, bytes signature)` — passed to `mint`, `update`, `refine`.
+- **Transfer proof:** `abi.encode(bytes32 oldDataHash, bytes32 newDataHash, address receiver, bytes16 sealedKey, uint256 nonce, uint256 expiry, bytes signature)` — passed to `transfer`, `clone`.
+
+The signed digest format is `keccak256(abi.encode(fields, DOMAIN))` where `DOMAIN` is `KILN_PREIMAGE_V1` or `KILN_TRANSFER_V1`. Backend signs the raw keccak digest (not EIP-191 prefixed, not EIP-712 typed-data) — `wallet.signingKey.sign(digest)` from ethers v6.
+
+Backend flow:
+
+```
+Frontend → POST /api/transfer/proof or /api/attestation/preimage
+       ↓
+Backend builds envelope, ECDSA-signs with KILN_OPS_PK ops wallet
+       ↓
+Returns proof bytes
+       ↓
+User's wallet → KilnAgentNFT.transfer(...) or .refine(...)
+       ↓
+KilnAgentNFT → oracle.verifyPreimage(proofs) or verifyTransferValidity(proofs)
+       ↓
+Oracle: decode → check signer trusted → low-s + v ∈ {27,28} → check nonce → check expiry → return isValid + struct
+       ↓
+KilnAgentNFT: out[i].oldDataHash == stored, out[i].receiver == to → ok → mutate state
+```
 
 ### KilnSubnameRegistrar (Sepolia)
 
