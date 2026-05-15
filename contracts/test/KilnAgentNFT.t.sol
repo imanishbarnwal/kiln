@@ -3,18 +3,19 @@ pragma solidity 0.8.24;
 
 import {Test} from "forge-std/Test.sol";
 import {KilnAgentNFT} from "../src/KilnAgentNFT.sol";
-import {KilnMockVerifier} from "../src/KilnMockVerifier.sol";
+import {KilnAttestationOracle} from "../src/KilnAttestationOracle.sol";
 
 contract KilnAgentNFTTest is Test {
     KilnAgentNFT internal nft;
-    KilnMockVerifier internal verifier;
+    KilnAttestationOracle internal verifier;
 
     address internal alice = makeAddr("alice");
     address internal bob   = makeAddr("bob");
     address internal carol = makeAddr("carol");
 
     function setUp() public {
-        verifier = new KilnMockVerifier();
+        verifier = new KilnAttestationOracle();
+        verifier.setMockMode(true);
         nft = new KilnAgentNFT(
             "Kiln AgentNFT",
             "KILN",
@@ -24,9 +25,13 @@ contract KilnAgentNFTTest is Test {
         );
     }
 
+    function _preimageProof(bytes32 dataHash) internal view returns (bytes memory) {
+        return abi.encode(dataHash, uint256(0), block.timestamp + 60, hex"00");
+    }
+
     function _mintTo(address to, bytes32 dataHash) internal returns (uint256) {
         bytes[] memory proofs = new bytes[](1);
-        proofs[0] = abi.encodePacked(dataHash);
+        proofs[0] = _preimageProof(dataHash);
         string[] memory descs = new string[](1);
         descs[0] = "encrypted-model-blob";
         vm.prank(to);
@@ -35,11 +40,11 @@ contract KilnAgentNFTTest is Test {
 
     function _transferProof(bytes32 oldHash, bytes32 newHash, address receiver, bytes16 sealedKey)
         internal
-        pure
+        view
         returns (bytes[] memory proofs)
     {
         proofs = new bytes[](1);
-        proofs[0] = abi.encode(oldHash, newHash, receiver, sealedKey);
+        proofs[0] = abi.encode(oldHash, newHash, receiver, sealedKey, uint256(0), block.timestamp + 60, hex"00");
     }
 
     function test_mint_assignsOwnerAndStoresHash() public {
@@ -132,7 +137,7 @@ contract KilnAgentNFTTest is Test {
 
         bytes32 newHash = keccak256("blob-7-new");
         bytes[] memory proofs = new bytes[](1);
-        proofs[0] = abi.encodePacked(newHash);
+        proofs[0] = _preimageProof(newHash);
 
         vm.prank(alice);
         nft.update(tokenId, proofs);
@@ -148,7 +153,7 @@ contract KilnAgentNFTTest is Test {
 
         bytes32 newHash = keccak256("blob-8-new");
         bytes[] memory proofs = new bytes[](1);
-        proofs[0] = abi.encodePacked(newHash);
+        proofs[0] = _preimageProof(newHash);
         string[] memory newDesc = new string[](1);
         newDesc[0] = "kiln:v1:{\"name\":\"GM Mira v2\"}";
 
@@ -164,7 +169,7 @@ contract KilnAgentNFTTest is Test {
         uint256 tokenId = _mintTo(alice, h);
 
         bytes[] memory proofs = new bytes[](1);
-        proofs[0] = abi.encodePacked(h);
+        proofs[0] = _preimageProof(h);
         string[] memory desc = new string[](1);
         desc[0] = "anything";
 
@@ -178,7 +183,7 @@ contract KilnAgentNFTTest is Test {
         uint256 tokenId = _mintTo(alice, h);
 
         bytes[] memory proofs = new bytes[](1);
-        proofs[0] = abi.encodePacked(h);
+        proofs[0] = _preimageProof(h);
         string[] memory desc = new string[](2);
         desc[0] = "a";
         desc[1] = "b"; // length 2 vs proofs length 1
