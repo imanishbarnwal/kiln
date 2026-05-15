@@ -13,22 +13,30 @@ import {
 ///         to prevent replay and enforces expiry windows. mockMode bypass
 ///         exists for the Galileo demo only; production uses mockMode=false.
 contract KilnAttestationOracle is IERC7857DataVerifier {
-    /// @dev EIP-191-style domain separators bound into the signed digest.
+    /// @dev Context constants bound into the signed digest. NOT EIP-712 domain
+    ///      separators — we use raw EIP-191 signatures since the signer is a
+    ///      backend ops wallet (no end-user wallet UX to optimize for).
     bytes32 public constant PREIMAGE_DOMAIN = keccak256("KILN_PREIMAGE_V1");
     bytes32 public constant TRANSFER_DOMAIN = keccak256("KILN_TRANSFER_V1");
 
-    /// @dev How far in the future an attestation may claim expiry.
-    /// Clock-skew window for backend↔chain drift.
+    /// @dev Maximum allowed clock skew (in seconds) between backend signer and
+    ///      chain timestamp. Attestations claiming expiry up to this many seconds
+    ///      past `block.timestamp` are still accepted at signing time.
     uint256 public constant MAX_EXPIRY_SKEW = 60;
 
     address public admin;
+    address public pendingAdmin;
     bool public mockMode;
+    bool public mainnetLocked;
     mapping(address => bool) public trustedSigners;
     mapping(address => mapping(uint256 => bool)) public usedNonces; // signer → nonce → used
 
     event TrustedSignerAdded(address indexed signer);
     event TrustedSignerRemoved(address indexed signer);
     event MockModeToggled(bool enabled);
+    event MainnetModeLocked();
+    event AdminTransferStarted(address indexed oldAdmin, address indexed pendingAdmin);
+    event AdminTransferred(address indexed oldAdmin, address indexed newAdmin);
     event PreimageVerified(address indexed signer, bytes32 indexed dataHash, uint256 nonce);
     event TransferVerified(
         address indexed signer,
@@ -55,18 +63,37 @@ contract KilnAttestationOracle is IERC7857DataVerifier {
     }
 
     function removeTrustedSigner(address signer) external onlyAdmin {
+        require(trustedSigners[signer], "KilnAttestationOracle: not a signer");
         trustedSigners[signer] = false;
         emit TrustedSignerRemoved(signer);
     }
 
     function setMockMode(bool enabled) external onlyAdmin {
+        if (enabled) {
+            require(!mainnetLocked, "KilnAttestationOracle: mainnet locked");
+        }
         mockMode = enabled;
         emit MockModeToggled(enabled);
     }
 
+    function lockMainnetMode() external onlyAdmin {
+        require(!mockMode, "KilnAttestationOracle: mockMode currently true");
+        mainnetLocked = true;
+        emit MainnetModeLocked();
+    }
+
     function transferAdmin(address newAdmin) external onlyAdmin {
         require(newAdmin != address(0), "KilnAttestationOracle: zero admin");
-        admin = newAdmin;
+        pendingAdmin = newAdmin;
+        emit AdminTransferStarted(admin, newAdmin);
+    }
+
+    function acceptAdmin() external {
+        require(msg.sender == pendingAdmin, "KilnAttestationOracle: not pending admin");
+        address oldAdmin = admin;
+        admin = pendingAdmin;
+        pendingAdmin = address(0);
+        emit AdminTransferred(oldAdmin, admin);
     }
 
     function verifyPreimage(bytes[] calldata _proofs)
