@@ -4,6 +4,31 @@
 
 After `DeployMainnet.s.sol` runs, addresses are recorded in `contracts/deployments/aristotle.json` (the canonical record), mirrored in `README.md`, and set in Vercel env vars (`NEXT_PUBLIC_AGENT_NFT_ADDRESS`, `NEXT_PUBLIC_KILN_MARKET_ADDRESS`, `NEXT_PUBLIC_VERIFIER_ADDRESS`).
 
+## First-time deploy
+
+The deploy script reads four env vars:
+
+| Env var | What it is |
+|---|---|
+| `DEPLOYER_PK` | Private key of the wallet broadcasting the txs. Must hold ≥ 2 OG on Aristotle. |
+| `OPS_SIGNER_ADDRESS` | Address registered as the initial trusted signer on the oracle. Typically the same address whose key lives in `KILN_OPS_PK` on Vercel. |
+| `TREASURY` | Address that receives the 8% Kiln fee on session payouts. Can be the deployer or a separate cold wallet. |
+| `EXECUTOR` | Address authorized to call `KilnMarket.endSession`. Typically the same as `OPS_SIGNER_ADDRESS` (the backend already runs as that wallet). |
+
+Then:
+
+```bash
+cd contracts && \
+  DEPLOYER_PK=0x... \
+  OPS_SIGNER_ADDRESS=0x... \
+  TREASURY=0x... \
+  EXECUTOR=0x... \
+  forge script script/DeployMainnet.s.sol \
+    --rpc-url aristotle --broadcast --verify
+```
+
+Three console2 lines print the deployed addresses. Record them in `contracts/deployments/aristotle.json` and Vercel env vars. Then run `lockMainnetMode()` (see below).
+
 ## Wallets
 
 - **Deployer wallet** — created the three contracts. After deploy, it has admin rights on `KilnAgentNFT.admin` and `KilnAttestationOracle.admin`. Rotate via the two-step `transferAdmin` → `acceptAdmin` flow.
