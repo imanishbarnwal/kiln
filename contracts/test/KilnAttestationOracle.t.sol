@@ -55,4 +55,48 @@ contract KilnAttestationOracleTest is Test {
         assertEq(out[0].dataHash, dataHash);
         assertTrue(oracle.usedNonces(signer, nonce));
     }
+
+    function test_verifyPreimage_untrustedSignerFails() public {
+        uint256 otherKey = 0xDEAD;
+        bytes memory proof = _signPreimage(keccak256("x"), 1, block.timestamp + 60, otherKey);
+        bytes[] memory proofs = new bytes[](1);
+        proofs[0] = proof;
+        vm.expectRevert(bytes("KilnAttestationOracle: untrusted signer"));
+        oracle.verifyPreimage(proofs);
+    }
+
+    function test_verifyPreimage_expiredFails() public {
+        bytes memory proof = _signPreimage(keccak256("x"), 1, block.timestamp - 1, signerKey);
+        bytes[] memory proofs = new bytes[](1);
+        proofs[0] = proof;
+        vm.expectRevert(bytes("KilnAttestationOracle: expired"));
+        oracle.verifyPreimage(proofs);
+    }
+
+    function test_verifyPreimage_replayedNonceFails() public {
+        bytes memory proof = _signPreimage(keccak256("x"), 1, block.timestamp + 60, signerKey);
+        bytes[] memory proofs = new bytes[](1);
+        proofs[0] = proof;
+        oracle.verifyPreimage(proofs);
+        vm.expectRevert(bytes("KilnAttestationOracle: nonce used"));
+        oracle.verifyPreimage(proofs);
+    }
+
+    function test_verifyPreimage_tamperedDataHashFails() public {
+        bytes32 origHash = keccak256("orig");
+        bytes memory signed = _signPreimage(origHash, 1, block.timestamp + 60, signerKey);
+        // Decode and replace dataHash with a different one, keep same signature
+        (, uint256 n, uint256 e, bytes memory sig) = abi.decode(signed, (bytes32, uint256, uint256, bytes));
+        bytes memory tampered = abi.encode(keccak256("evil"), n, e, sig);
+        bytes[] memory proofs = new bytes[](1);
+        proofs[0] = tampered;
+        vm.expectRevert(bytes("KilnAttestationOracle: untrusted signer"));
+        oracle.verifyPreimage(proofs);
+    }
+
+    function test_addTrustedSigner_nonAdminFails() public {
+        vm.prank(address(0xBAD));
+        vm.expectRevert(bytes("KilnAttestationOracle: not admin"));
+        oracle.addTrustedSigner(address(0x123));
+    }
 }
