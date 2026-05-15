@@ -11,6 +11,10 @@ export type Broker = Awaited<ReturnType<typeof createZGComputeNetworkBroker>>
 
 let _broker: Broker | null = null
 
+export async function getBroker(): Promise<Broker> {
+  return broker()
+}
+
 async function broker(): Promise<Broker> {
   if (_broker) return _broker
   const rpc = process.env.ZG_RPC_URL
