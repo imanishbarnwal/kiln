@@ -22,15 +22,26 @@ If you want the one-liner: **everything that touches your wallet is real on chai
 1. **Embeddings.** Replace BM25 with dense embeddings via 0G Compute's embedding endpoint when it ships. Better recall on conceptual queries; BM25 stays as the deterministic fallback.
 2. **Real fine-tuning.** Kick off a LoRA job on 0G Compute at mint time, store the adapter root in `dataHashes`, load at inference. The iNFT then owns weights, not just a prompt.
 
-### 2. The verifier is a demo stand-in
+### 2. Real on-chain attestation, with a documented bridge
 
-**What is real.** `KilnAgentNFT` calls into an `IERC7857DataVerifier` for every mint, transfer, and refine. The interface is exactly what the EIP-7857 draft specifies. Our verifier address is configurable and admin-swappable.
+On Aristotle mainnet, `KilnAttestationOracle` enforces ECDSA signatures over extended proof envelopes. Each proof carries:
 
-**What is the stand-in.** `KilnMockVerifier` accepts any 32-byte preimage proof and any correctly-encoded transfer proof as `isValid = true`. It does not check TEE attestations, it does not check signatures from a designated TeeML provider. It's purpose-built so we can demo the contract surface without standing up a real TeeML deployment.
+- A **nonce**, stamped on chain at first use — a successfully verified proof can never be replayed.
+- An **expiry**, rejected past clock time, capped at `now + 365 days + 60 second skew window`.
+- A **signature** recovered to a trusted-signer address registered by the contract admin.
+- A **domain tag** (`KILN_PREIMAGE_V1` or `KILN_TRANSFER_V1`) bound into the signed digest, so a preimage proof can never be replayed as a transfer proof.
 
-**Worst-case impact.** Anyone who knows the verifier address could craft a proof that the contract accepts. They cannot, however, change the on-chain owner of an existing token without going through `transfer` (which requires the current owner's signature) or the contract's admin role (which is locked to the deployer). So the disclosure is "the verifier is permissive" not "anyone can steal an iNFT."
+ECDSA enforcement uses canonical low-`s` (EIP-2) plus strict `v ∈ {27, 28}` — malleated signatures revert.
 
-**Migration.** Deploy the production `TeeVerifier.sol` from the 0G reference, call `updateVerifier(newAddress)` from the admin wallet. Single tx, no application changes.
+The trust anchor is a backend signer registered by `admin.addTrustedSigner(...)` — the same ops wallet that authorizes inference sessions. The chain of custody runs:
+
+```
+0G Compute TEE  →  Kiln backend (re-signs)  →  KilnAttestationOracle on chain
+```
+
+The on-chain check is mathematically real. The bridge from raw 0G TEE attestation to a Kiln-signed envelope is the backend — that backend is a single point of trust today. Rotating to per-key separation and a decentralized signer set is on the post-hackathon roadmap.
+
+`mockMode` is supported on the oracle but admin-only. On Aristotle the admin calls `lockMainnetMode()` once after deploy; from that point `setMockMode(true)` reverts forever. The flag exists on Galileo testnet to keep the existing demo working without coach-signed proofs.
 
 ### 3. The executor is a single server-side wallet
 
