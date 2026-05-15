@@ -51,6 +51,15 @@ contract DeployMainnet is Script {
         console2.log("Oracle:",   address(o));
         console2.log("AgentNFT:", address(n));
         console2.log("Market:",   address(m));
+
+        console2.log("");
+        console2.log("====================================================================");
+        console2.log("DEPLOY COMPLETE. NEXT STEP (manual):");
+        console2.log("After verifying the contracts work, run from the admin wallet:");
+        console2.log("  cast send <ORACLE_ADDRESS> 'lockMainnetMode()' --rpc-url aristotle");
+        console2.log("This permanently disables mockMode. See docs/MAINNET.md.");
+        console2.log("====================================================================");
+
         return (address(o), address(n), address(m));
     }
 }
