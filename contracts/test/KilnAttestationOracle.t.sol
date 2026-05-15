@@ -177,4 +177,60 @@ contract KilnAttestationOracleTest is Test {
         vm.expectRevert(bytes("KilnAttestationOracle: nonce used"));
         oracle.verifyTransferValidity(proofs);
     }
+
+    function test_mockMode_acceptsAnyPreimage() public {
+        vm.prank(admin);
+        oracle.setMockMode(true);
+
+        // No valid signature — just any bytes
+        bytes memory proof = abi.encode(
+            bytes32(uint256(0xDEAD)), uint256(1), block.timestamp + 60, hex"00"
+        );
+        bytes[] memory proofs = new bytes[](1);
+        proofs[0] = proof;
+
+        PreimageProofOutput[] memory out = oracle.verifyPreimage(proofs);
+        assertTrue(out[0].isValid);
+    }
+
+    function test_mockMode_rejectsExpiredEven() public {
+        vm.prank(admin);
+        oracle.setMockMode(true);
+
+        bytes memory proof = abi.encode(
+            bytes32(uint256(0xDEAD)), uint256(1), uint256(0), hex"00"
+        );
+        bytes[] memory proofs = new bytes[](1);
+        proofs[0] = proof;
+
+        vm.expectRevert(bytes("KilnAttestationOracle: expired"));
+        oracle.verifyPreimage(proofs);
+    }
+
+    function test_setMockMode_nonAdminFails() public {
+        vm.prank(address(0xBAD));
+        vm.expectRevert(bytes("KilnAttestationOracle: not admin"));
+        oracle.setMockMode(true);
+    }
+
+    function test_mainnetLock_blocksReenableMockMode() public {
+        // Admin locks mainnet mode while mockMode = false (the default state).
+        vm.prank(admin);
+        oracle.lockMainnetMode();
+        // Setting mockMode = false is still fine (no-op).
+        vm.prank(admin);
+        oracle.setMockMode(false);
+        // Setting mockMode = true is permanently blocked.
+        vm.prank(admin);
+        vm.expectRevert(bytes("KilnAttestationOracle: mainnet locked"));
+        oracle.setMockMode(true);
+    }
+
+    function test_lockMainnetMode_failsIfMockModeOn() public {
+        vm.prank(admin);
+        oracle.setMockMode(true);
+        vm.prank(admin);
+        vm.expectRevert(bytes("KilnAttestationOracle: mockMode currently true"));
+        oracle.lockMainnetMode();
+    }
 }
