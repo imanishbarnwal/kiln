@@ -1,0 +1,20 @@
+{
+  "chainId": 16661,
+  "chainName": "0G Aristotle Mainnet",
+  "rpc": "https://evmrpc.0g.ai",
+  "explorer": "https://chainscan.0g.ai",
+  "deployedAt": "2026-05-15",
+  "deployer": "0x3e8983d0df94f7AF2f830eB5E49d10917dB92303",
+  "addresses": {
+    "KilnAttestationOracle": "0x48355a8897F13b432a321dc530AEFCf77B686698",
+    "KilnAgentNFT": "0x83B632ECa1f175e72D1299f0d540da04Ed1edCaa",
+    "KilnMarket": "0x34C0AE70f887f8270014de09E6a3923f3321976c"
+  },
+  "trustedSigners": ["0x3e8983d0df94f7AF2f830eB5E49d10917dB92303"],
+  "treasury": "0x3e8983d0df94f7AF2f830eB5E49d10917dB92303",
+  "executor": "0x3e8983d0df94f7AF2f830eB5E49d10917dB92303",
+  "mainnetLocked": true,
+  "mockMode": false,
+  "deployTx": "see contracts/broadcast/DeployMainnet.s.sol/16661/run-latest.json",
+  "lockTx": "0x18e77a293e1f477f4eb1d75f6c69862067ed2ac957bfc01d4ab3388591da81aa"
+}

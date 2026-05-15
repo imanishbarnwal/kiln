@@ -31,15 +31,15 @@ Built end-to-end on the **0G** stack: Storage for encrypted artifacts, Compute f
 
 ### Aristotle mainnet
 
-A real attestation oracle (`KilnAttestationOracle`) replaces the testnet mock. Deployment is gated on funded OG; addresses below land after `forge script DeployMainnet.s.sol --rpc-url aristotle --broadcast` runs.
+Live since **2026-05-15**. A real `KilnAttestationOracle` replaces the testnet mock — ECDSA signatures with low-s + strict v ∈ {27, 28}, per-signer nonce replay protection, 365-day expiry ceiling, cross-domain separators, and `mainnetLocked = true` (mockMode permanently disabled).
 
 | Contract | Address | Explorer |
 |---|---|---|
-| `KilnAttestationOracle` | `0x…` (post-deploy) | [chainscan](https://chainscan.0g.ai) |
-| `KilnAgentNFT` (ERC-7857) | `0x…` (post-deploy) | [chainscan](https://chainscan.0g.ai) |
-| `KilnMarket` | `0x…` (post-deploy) | [chainscan](https://chainscan.0g.ai) |
+| `KilnAttestationOracle` | `0x48355a8897F13b432a321dc530AEFCf77B686698` | [view](https://chainscan.0g.ai/address/0x48355a8897F13b432a321dc530AEFCf77B686698) |
+| `KilnAgentNFT` (ERC-7857) | `0x83B632ECa1f175e72D1299f0d540da04Ed1edCaa` | [view](https://chainscan.0g.ai/address/0x83B632ECa1f175e72D1299f0d540da04Ed1edCaa) |
+| `KilnMarket` | `0x34C0AE70f887f8270014de09E6a3923f3321976c` | [view](https://chainscan.0g.ai/address/0x34C0AE70f887f8270014de09E6a3923f3321976c) |
 
-Chain id `16661`, RPC `https://evmrpc.0g.ai`, native token `OG`. See [docs/MAINNET.md](docs/MAINNET.md) for the operations playbook.
+Chain id `16661`, RPC `https://evmrpc.0g.ai`, native token `OG`. iNFT #1 (GM Alina Volkov) seeded as the first mainnet coach. See [docs/MAINNET.md](docs/MAINNET.md) for the operations playbook.
 
 ### Testnet (Galileo)
 
