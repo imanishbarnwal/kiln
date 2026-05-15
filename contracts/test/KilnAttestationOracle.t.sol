@@ -109,4 +109,72 @@ contract KilnAttestationOracleTest is Test {
         vm.expectRevert(bytes("KilnAttestationOracle: not admin"));
         oracle.addTrustedSigner(address(0x123));
     }
+
+    function _signTransfer(
+        bytes32 oldHash,
+        bytes32 newHash,
+        address receiver,
+        bytes16 sealedKey,
+        uint256 nonce,
+        uint256 expiry,
+        uint256 privKey
+    ) internal view returns (bytes memory proof) {
+        bytes32 digest = keccak256(abi.encode(
+            oldHash, newHash, receiver, sealedKey, nonce, expiry, oracle.TRANSFER_DOMAIN()
+        ));
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(privKey, digest);
+        bytes memory signature = abi.encodePacked(r, s, v);
+        return abi.encode(oldHash, newHash, receiver, sealedKey, nonce, expiry, signature);
+    }
+
+    function test_verifyTransferValidity_valid() public {
+        bytes32 oldH = keccak256("old");
+        bytes32 newH = keccak256("new");
+        address rcv = address(0xCAFE);
+        bytes16 sealedKey = bytes16(keccak256("key"));
+        bytes memory proof = _signTransfer(oldH, newH, rcv, sealedKey, 7, block.timestamp + 300, signerKey);
+
+        bytes[] memory proofs = new bytes[](1);
+        proofs[0] = proof;
+
+        TransferValidityProofOutput[] memory out = oracle.verifyTransferValidity(proofs);
+        assertTrue(out[0].isValid);
+        assertEq(out[0].oldDataHash, oldH);
+        assertEq(out[0].newDataHash, newH);
+        assertEq(out[0].receiver, rcv);
+        assertEq(out[0].sealedKey, sealedKey);
+    }
+
+    function test_verifyTransferValidity_preimageProofCannotBeReplayed() public {
+        // Domain-separator defense: a preimage proof must NOT verify as transfer.
+        bytes memory preimage = _signPreimage(keccak256("x"), 99, block.timestamp + 60, signerKey);
+        bytes[] memory proofs = new bytes[](1);
+        proofs[0] = preimage;
+        vm.expectRevert();
+        oracle.verifyTransferValidity(proofs);
+    }
+
+    function test_verifyTransferValidity_untrustedSignerFails() public {
+        uint256 otherKey = 0xDEAD;
+        bytes memory proof = _signTransfer(
+            keccak256("old"), keccak256("new"), address(0xCAFE),
+            bytes16(0), 1, block.timestamp + 60, otherKey
+        );
+        bytes[] memory proofs = new bytes[](1);
+        proofs[0] = proof;
+        vm.expectRevert(bytes("KilnAttestationOracle: untrusted signer"));
+        oracle.verifyTransferValidity(proofs);
+    }
+
+    function test_verifyTransferValidity_replayedNonceFails() public {
+        bytes memory proof = _signTransfer(
+            keccak256("old"), keccak256("new"), address(0xCAFE),
+            bytes16(0), 42, block.timestamp + 60, signerKey
+        );
+        bytes[] memory proofs = new bytes[](1);
+        proofs[0] = proof;
+        oracle.verifyTransferValidity(proofs);
+        vm.expectRevert(bytes("KilnAttestationOracle: nonce used"));
+        oracle.verifyTransferValidity(proofs);
+    }
 }

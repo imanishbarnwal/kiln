@@ -165,7 +165,57 @@ contract KilnAttestationOracle is IERC7857DataVerifier {
         returns (TransferValidityProofOutput[] memory)
     {
         require(_proofs.length <= 32, "KilnAttestationOracle: too many proofs");
-        // Implemented in Task 1.6 (later task in plan)
-        revert("KilnAttestationOracle: verifyTransferValidity not implemented");
+        TransferValidityProofOutput[] memory outputs = new TransferValidityProofOutput[](_proofs.length);
+        for (uint256 i = 0; i < _proofs.length; i++) {
+            outputs[i] = _verifyTransferOne(_proofs[i]);
+        }
+        return outputs;
+    }
+
+    function _verifyTransferOne(bytes calldata proof)
+        internal
+        returns (TransferValidityProofOutput memory)
+    {
+        (
+            bytes32 oldHash,
+            bytes32 newHash,
+            address receiver,
+            bytes16 sealedKey,
+            uint256 nonce,
+            uint256 expiry,
+            bytes memory signature
+        ) = abi.decode(proof, (bytes32, bytes32, address, bytes16, uint256, uint256, bytes));
+
+        if (mockMode) {
+            require(expiry >= block.timestamp, "KilnAttestationOracle: expired");
+            emit MockAttestationAccepted(msg.sender, oldHash, nonce);
+            return TransferValidityProofOutput({
+                oldDataHash: oldHash,
+                newDataHash: newHash,
+                receiver: receiver,
+                sealedKey: sealedKey,
+                isValid: true
+            });
+        }
+
+        require(expiry >= block.timestamp, "KilnAttestationOracle: expired");
+        require(expiry <= block.timestamp + 365 days + MAX_EXPIRY_SKEW, "KilnAttestationOracle: expiry too far");
+
+        bytes32 digest = keccak256(abi.encode(
+            oldHash, newHash, receiver, sealedKey, nonce, expiry, TRANSFER_DOMAIN
+        ));
+        address recovered = _recoverSigner(digest, signature);
+        require(trustedSigners[recovered], "KilnAttestationOracle: untrusted signer");
+        require(!usedNonces[recovered][nonce], "KilnAttestationOracle: nonce used");
+        usedNonces[recovered][nonce] = true;
+
+        emit TransferVerified(recovered, oldHash, newHash, receiver, nonce);
+        return TransferValidityProofOutput({
+            oldDataHash: oldHash,
+            newDataHash: newHash,
+            receiver: receiver,
+            sealedKey: sealedKey,
+            isValid: true
+        });
     }
 }
