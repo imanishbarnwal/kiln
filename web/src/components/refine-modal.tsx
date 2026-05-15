@@ -103,6 +103,19 @@ export function RefineModal({ tokenId, open, onClose, onRefined }: Props) {
       const newDesc = serializePersona(persona)
       const newHash = ethers.keccak256(new TextEncoder().encode(newDesc))
 
+      // Fetch a signed preimage proof envelope (nonce + expiry + sig) from
+      // the backend. The oracle rejects bare hashes; it wants the full
+      // envelope shape. We pass `proofs` verbatim to the contract.
+      toast.message('Preparing TEE proof…')
+      const res = await fetch('/api/attestation/preimage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dataHashes: [newHash] }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error ?? 'proof api failed')
+      const proofs: `0x${string}`[] = json.proofs
+
       // Sign and broadcast refine() from the owner's wallet
       const eip = await wallet.getEthereumProvider()
       const bp = new ethers.BrowserProvider(eip as any)
@@ -114,7 +127,7 @@ export function RefineModal({ tokenId, open, onClose, onRefined }: Props) {
       )
 
       toast.message('Refining iNFT…')
-      const tx = await nft.refine(tokenId, [newHash], [newDesc], {
+      const tx = await nft.refine(tokenId, proofs, [newDesc], {
         gasPrice: 5_000_000_000n,
       })
       setTxHash(tx.hash as `0x${string}`)
