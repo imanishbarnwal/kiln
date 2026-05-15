@@ -78,7 +78,7 @@ The marketplace is seeded with coaches across Chess, Wellness, Startup, Language
  │ encrypted   │                     │ Qwen 2.5 7B   │                 │                 │
  │ artifacts   │                     │ in TEE        │                 │ KilnAgentNFT    │
  │ AES-256-GCM │                     │ OpenAI-compat │                 │ KilnMarket      │
- │ Merkle root │                     │ billing via   │                 │ KilnMockVerifier│
+ │ Merkle root │                     │ billing via   │                 │ KilnAttestationOracle│
  │ on chain    │                     │ broker ledger │                 │                 │
  └─────────────┘                     └───────────────┘                 └─────────────────┘
 ```
@@ -138,7 +138,7 @@ Prerequisites: Node 20+, pnpm 9+, [Foundry](https://book.getfoundry.sh/getting-s
 Three things a careful reader should know up front. The full disclosures live in [**docs/TRUST-MODEL.md**](docs/TRUST-MODEL.md).
 
 1. **The model is not yet fine-tuned on coach uploads.** Files are encrypted on chain as tamper-evident provenance. Inference uses Qwen 2.5 7B with the persona's system prompt plus BM25 retrieval over the coach's notes manifest. Honest framing: we're closer to "extremely well-prompted RAG" than to "the coach's personality has been baked into the weights." Fine-tuning ships when 0G Compute exposes a training API.
-2. **The verifier is a demo stand-in.** `KilnMockVerifier` accepts any correctly-formatted proof. Migrating to 0G's production TeeML verifier is a one-line admin call.
+2. **The verifier is real on Aristotle.** `KilnAttestationOracle` enforces ECDSA signatures (low-s + strict v) over extended proof envelopes carrying nonce, expiry, and a domain tag. The same contract supports a `mockMode` flag on Galileo testnet (admin-only, permanently locked on Aristotle via `lockMainnetMode()` after deploy). Read [`docs/TRUST-MODEL.md`](docs/TRUST-MODEL.md#real-on-chain-attestation-with-a-documented-bridge) for the chain of custody and what we still depend on a single backend signer for.
 3. **The executor is a single server-side wallet.** Authorized via `authorizeUsage`, wiped on transfer · which is what makes "seller provably loses access" real. Decentralizing across the 0G Compute provider mesh is the v2 path.
 
 ---
@@ -152,7 +152,7 @@ ERC-7857 mint, transfer, refine · marketplace with per-session and per-day pric
 
 1. **Real fine-tuning.** Kick off a LoRA job on 0G Compute at mint time and store the adapter's root hash in `dataHashes`. BM25 stays as the fallback retrieval layer for non-fine-tuned coaches.
 2. **Reputation on chain.** Index `SessionEnded` events per token and feed session count + average rating into `KilnAvatar.reputation`. The avatar component already reads the parameter · it is pinned at 0 today.
-3. **Production TEE verifier.** Swap `KilnMockVerifier` for 0G TeeML's production verifier. No application changes required · the interface is already correct.
+3. **Production TEE verifier.** Swap `KilnAttestationOracle` for 0G TeeML's production verifier when 0G ships a stable on-chain shape. `KilnAgentNFT.setVerifier(address)` is admin-only and rotates the pointer without redeploying the NFT.
 4. **Mainnet.** Deploy the three contracts on Aristotle (chain id `16661`) and list on the AIverse iNFT marketplace.
 5. **Embedding-based retrieval.** Upgrade BM25 to dense embeddings once 0G Compute exposes an embedding endpoint. Better recall on conceptual queries; BM25 stays the deterministic fallback.
 

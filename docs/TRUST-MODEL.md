@@ -87,6 +87,5 @@ If a feature does not appear in this list, treat it as off-chain and check the d
 ## How to verify any of this yourself
 
 1. **The persona is on chain.** Open `/chat/<tokenId>` and click the **Intelligence · embedded on 0G Chain** panel. You'll see the contract address, the data hash, and the decoded persona JSON live from the contract.
-2. **The verifier is mock.** Read [`contracts/src/KilnMockVerifier.sol`](../contracts/src/KilnMockVerifier.sol). It is 30 lines and the docstring says "demo stand-in."
-3. **The executor is one wallet.** Look at `KilnAgentNFT.authorizedUsersOf(tokenId)` for any iNFT. It returns one address. That's our ops wallet.
-4. **Sessions are time-limited.** Start a session and inspect `/api/inference/session/[id]` · the route reads the on-chain session state, verifies it's not settled, and pulls the persona from chain on every request.
+2. **The executor is one wallet.** Look at `KilnAgentNFT.authorizedUsersOf(tokenId)` for any iNFT. It returns one address. That's our ops wallet.
+3. **Sessions are time-limited.** Start a session and inspect `/api/inference/session/[id]` · the route reads the on-chain session state, verifies it's not settled, and pulls the persona from chain on every request.

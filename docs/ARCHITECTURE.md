@@ -43,7 +43,7 @@ A coach fills out their name, category, blurb, and system prompt on `/onboard`, 
 1. The browser generates a 256-bit AES-GCM key, encrypts the files client-side, and uploads the ciphertext to 0G Storage via `@0gfoundation/0g-ts-sdk`. A Merkle root comes back.
 2. The browser computes `sha256(ciphertext)` and serializes the persona as JSON.
 3. The coach's wallet signs `KilnAgentNFT.mint(proofs, dataDescriptions, to)` where:
-   - `proofs[0]` = the sha256 hash (accepted by our mock verifier as the preimage)
+   - `proofs[0]` = the signed envelope (`abi.encode(dataHash, nonce, expiry, signature)`). On Galileo, mockMode accepts a placeholder signature; on Aristotle, the signature is verified against the trusted-signer registry.
    - `dataDescriptions[0]` = the persona JSON blob, prefixed with `kiln:v1:`
 4. The token ends up in the coach's wallet. The persona is now public, tamper-evident, and readable by anyone on chain.
 
@@ -233,7 +233,7 @@ kiln/
 │   ├── src/
 │   │   ├── KilnAgentNFT.sol        non-upgradeable IERC7857 implementation
 │   │   ├── KilnMarket.sol          listing + sessions + licenses + split
-│   │   └── KilnMockVerifier.sol    IERC7857DataVerifier stand-in for demo
+│   │   └── KilnAttestationOracle.sol  IERC7857DataVerifier — ECDSA envelope
 │   ├── test/
 │   │   ├── KilnAgentNFT.t.sol      unit tests for mint/transfer/refine
 │   │   └── KilnMarket.t.sol        pricing/split/licenses/admin tests
