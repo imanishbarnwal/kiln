@@ -13,9 +13,13 @@ import {
 ///         to prevent replay and enforces expiry windows. mockMode bypass
 ///         exists for the Galileo demo only; production uses mockMode=false.
 contract KilnAttestationOracle is IERC7857DataVerifier {
-    /// @dev Context constants bound into the signed digest. NOT EIP-712 domain
-    ///      separators — we use raw EIP-191 signatures since the signer is a
-    ///      backend ops wallet (no end-user wallet UX to optimize for).
+    /// @dev Context tags hashed into the signed digest to prevent cross-protocol
+    ///      reuse (a preimage proof cannot be replayed as a transfer proof and
+    ///      vice versa). These are NOT EIP-712 domain separators — we sign the
+    ///      raw keccak digest directly (no `\x19Ethereum Signed Message:\n32`
+    ///      prefix). The backend must sign with `wallet.signingKey.sign(digest)`,
+    ///      NOT `signer.signMessage(...)`. This is fine because the only signer
+    ///      is our backend ops wallet — no end-user wallet UX to optimize for.
     bytes32 public constant PREIMAGE_DOMAIN = keccak256("KILN_PREIMAGE_V1");
     bytes32 public constant TRANSFER_DOMAIN = keccak256("KILN_TRANSFER_V1");
 
@@ -29,7 +33,10 @@ contract KilnAttestationOracle is IERC7857DataVerifier {
     bool public mockMode;
     bool public mainnetLocked;
     mapping(address => bool) public trustedSigners;
-    mapping(address => mapping(uint256 => bool)) public usedNonces; // signer → nonce → used
+    /// @dev Replay-protection map. Backend chooses nonces freely (any uint256 not
+    ///      previously used by that signer); they do NOT need to be monotonic.
+    ///      Backend must persist used-nonce state per signer to avoid reuse.
+    mapping(address => mapping(uint256 => bool)) public usedNonces;
 
     event TrustedSignerAdded(address indexed signer);
     event TrustedSignerRemoved(address indexed signer);
@@ -45,7 +52,7 @@ contract KilnAttestationOracle is IERC7857DataVerifier {
         address receiver,
         uint256 nonce
     );
-    event MockAttestationAccepted(bytes32 indexed dataHash, uint256 nonce);
+    event MockAttestationAccepted(address indexed submitter, bytes32 indexed dataHash, uint256 nonce);
 
     modifier onlyAdmin() {
         require(msg.sender == admin, "KilnAttestationOracle: not admin");
@@ -101,6 +108,7 @@ contract KilnAttestationOracle is IERC7857DataVerifier {
         override
         returns (PreimageProofOutput[] memory)
     {
+        require(_proofs.length <= 32, "KilnAttestationOracle: too many proofs");
         PreimageProofOutput[] memory outputs = new PreimageProofOutput[](_proofs.length);
         for (uint256 i = 0; i < _proofs.length; i++) {
             outputs[i] = _verifyPreimageOne(_proofs[i]);
@@ -117,7 +125,7 @@ contract KilnAttestationOracle is IERC7857DataVerifier {
 
         if (mockMode) {
             require(expiry >= block.timestamp, "KilnAttestationOracle: expired");
-            emit MockAttestationAccepted(dataHash, nonce);
+            emit MockAttestationAccepted(msg.sender, dataHash, nonce);
             return PreimageProofOutput({dataHash: dataHash, isValid: true});
         }
 
@@ -142,6 +150,12 @@ contract KilnAttestationOracle is IERC7857DataVerifier {
             s := mload(add(signature, 64))
             v := byte(0, mload(add(signature, 96)))
         }
+        // Enforce low-s (RFC 6979 / EIP-2 canonical form) — rejects malleable signatures.
+        require(
+            uint256(s) <= 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0,
+            "KilnAttestationOracle: malleable s"
+        );
+        require(v == 27 || v == 28, "KilnAttestationOracle: bad v");
         return ecrecover(digest, v, r, s);
     }
 
@@ -150,6 +164,7 @@ contract KilnAttestationOracle is IERC7857DataVerifier {
         override
         returns (TransferValidityProofOutput[] memory)
     {
+        require(_proofs.length <= 32, "KilnAttestationOracle: too many proofs");
         // Implemented in Task 1.6 (later task in plan)
         revert("KilnAttestationOracle: verifyTransferValidity not implemented");
     }

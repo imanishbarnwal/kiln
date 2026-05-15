@@ -94,6 +94,16 @@ contract KilnAttestationOracleTest is Test {
         oracle.verifyPreimage(proofs);
     }
 
+    function test_verifyPreimage_expiryTooFarFails() public {
+        bytes memory proof = _signPreimage(
+            keccak256("x"), 1, block.timestamp + 366 days, signerKey
+        );
+        bytes[] memory proofs = new bytes[](1);
+        proofs[0] = proof;
+        vm.expectRevert(bytes("KilnAttestationOracle: expiry too far"));
+        oracle.verifyPreimage(proofs);
+    }
+
     function test_addTrustedSigner_nonAdminFails() public {
         vm.prank(address(0xBAD));
         vm.expectRevert(bytes("KilnAttestationOracle: not admin"));
