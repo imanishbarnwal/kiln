@@ -101,8 +101,48 @@ contract KilnAttestationOracle is IERC7857DataVerifier {
         override
         returns (PreimageProofOutput[] memory)
     {
-        // Implemented in Task 1.4 (next task in plan)
-        revert("KilnAttestationOracle: verifyPreimage not implemented");
+        PreimageProofOutput[] memory outputs = new PreimageProofOutput[](_proofs.length);
+        for (uint256 i = 0; i < _proofs.length; i++) {
+            outputs[i] = _verifyPreimageOne(_proofs[i]);
+        }
+        return outputs;
+    }
+
+    function _verifyPreimageOne(bytes calldata proof)
+        internal
+        returns (PreimageProofOutput memory)
+    {
+        (bytes32 dataHash, uint256 nonce, uint256 expiry, bytes memory signature) =
+            abi.decode(proof, (bytes32, uint256, uint256, bytes));
+
+        if (mockMode) {
+            require(expiry >= block.timestamp, "KilnAttestationOracle: expired");
+            emit MockAttestationAccepted(dataHash, nonce);
+            return PreimageProofOutput({dataHash: dataHash, isValid: true});
+        }
+
+        require(expiry >= block.timestamp, "KilnAttestationOracle: expired");
+        require(expiry <= block.timestamp + 365 days + MAX_EXPIRY_SKEW, "KilnAttestationOracle: expiry too far");
+
+        bytes32 digest = keccak256(abi.encode(dataHash, nonce, expiry, PREIMAGE_DOMAIN));
+        address recovered = _recoverSigner(digest, signature);
+        require(trustedSigners[recovered], "KilnAttestationOracle: untrusted signer");
+        require(!usedNonces[recovered][nonce], "KilnAttestationOracle: nonce used");
+        usedNonces[recovered][nonce] = true;
+
+        emit PreimageVerified(recovered, dataHash, nonce);
+        return PreimageProofOutput({dataHash: dataHash, isValid: true});
+    }
+
+    function _recoverSigner(bytes32 digest, bytes memory signature) internal pure returns (address) {
+        require(signature.length == 65, "KilnAttestationOracle: bad sig length");
+        bytes32 r; bytes32 s; uint8 v;
+        assembly {
+            r := mload(add(signature, 32))
+            s := mload(add(signature, 64))
+            v := byte(0, mload(add(signature, 96)))
+        }
+        return ecrecover(digest, v, r, s);
     }
 
     function verifyTransferValidity(bytes[] calldata _proofs)
