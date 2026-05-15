@@ -147,7 +147,18 @@ export default function OnboardPage() {
       const bp = new ethers.BrowserProvider(eip as any)
       const signer = await bp.getSigner()
       const nft = new ethers.Contract(ADDRESSES.KilnAgentNFT, ABIS.KilnAgentNFT as any, signer)
-      const tx = await nft.mint([dataHash], descriptions, await signer.getAddress(), {
+
+      const proofRes = await fetch('/api/attestation/preimage', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ dataHashes: [dataHash] }),
+      })
+      if (!proofRes.ok) {
+        throw new Error(`attestation/preimage failed: ${await proofRes.text()}`)
+      }
+      const { proofs } = await proofRes.json() as { proofs: string[] }
+
+      const tx = await nft.mint(proofs, descriptions, await signer.getAddress(), {
         gasPrice: 5_000_000_000n,
       })
       setTxHash(tx.hash as `0x${string}`)
