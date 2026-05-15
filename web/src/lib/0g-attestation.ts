@@ -1,3 +1,15 @@
+/// 0G Compute TEE attestation wrapper — currently unused in the v1 envelope.
+///
+/// The on-chain oracle (`KilnAttestationOracle`) does NOT inspect any TEE
+/// attestation blob today; it only verifies the ECDSA envelope signature.
+/// This module exists so that v1.1 can extend the envelope to carry a raw
+/// 0G TDX quote alongside the Kiln signature, giving us a verifiable chain
+/// of custody from the TEE itself rather than relying on the backend signer
+/// alone. Until that lands, callers of /api/transfer/proof and
+/// /api/attestation/preimage do not invoke this helper.
+///
+/// See docs/MAINNET.md "What's NOT in v1" for the honest framing.
+
 import { getBroker } from './compute'   // existing broker singleton
 
 /// Wraps 0G Compute broker's TEE attestation request.
