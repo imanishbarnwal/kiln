@@ -25,17 +25,31 @@ Built end-to-end on the **0G** stack: Storage for encrypted artifacts, Compute f
 
 ## Live deployments
 
-**Demo URL ·** [`kiln-virid-rho.vercel.app`](https://kiln-virid-rho.vercel.app) (frontend on Vercel · connect a wallet on Galileo to mint, rent, transfer)
+**Demo URL ·** [`kiln-virid-rho.vercel.app`](https://kiln-virid-rho.vercel.app) (frontend on Vercel · connect a wallet to mint, rent, transfer)
 
 > Council mode (`/council`) requires the AXL mesh running locally. See [docs/COUNCIL.md](docs/COUNCIL.md) for the local run-order. The other flows (mint, marketplace, chat with RAG, ENS claim, transfer) work end-to-end on the demo URL.
 
-All three Kiln contracts are live on the **0G Galileo testnet** (chain id `16602`, RPC `https://evmrpc-testnet.0g.ai`).
+### Aristotle mainnet
+
+A real attestation oracle (`KilnAttestationOracle`) replaces the testnet mock. Deployment is gated on funded OG; addresses below land after `forge script DeployMainnet.s.sol --rpc-url aristotle --broadcast` runs.
+
+| Contract | Address | Explorer |
+|---|---|---|
+| `KilnAttestationOracle` | `0x…` (post-deploy) | [chainscan](https://chainscan.0g.ai) |
+| `KilnAgentNFT` (ERC-7857) | `0x…` (post-deploy) | [chainscan](https://chainscan.0g.ai) |
+| `KilnMarket` | `0x…` (post-deploy) | [chainscan](https://chainscan.0g.ai) |
+
+Chain id `16661`, RPC `https://evmrpc.0g.ai`, native token `OG`. See [docs/MAINNET.md](docs/MAINNET.md) for the operations playbook.
+
+### Testnet (Galileo)
+
+All three first-generation Kiln contracts are live on the **0G Galileo testnet** (chain id `16602`, RPC `https://evmrpc-testnet.0g.ai`).
 
 | Contract | Address | Explorer |
 |---|---|---|
 | `KilnAgentNFT` (ERC-7857) | `0x613c3c4a75953c95affda3b181d0a0198bc7d811` | [view](https://chainscan-galileo.0g.ai/address/0x613c3c4a75953c95affda3b181d0a0198bc7d811) |
 | `KilnMarket` | `0x37fe0b75dae90ee8d844125373b1a2127ff7c67d` | [view](https://chainscan-galileo.0g.ai/address/0x37fe0b75dae90ee8d844125373b1a2127ff7c67d) |
-| `KilnMockVerifier` (demo) | `0x2fc379c08632792bf701a4d46309004cc103c123` | [view](https://chainscan-galileo.0g.ai/address/0x2fc379c08632792bf701a4d46309004cc103c123) |
+| `KilnMockVerifier` (legacy) | `0x2fc379c08632792bf701a4d46309004cc103c123` | [view](https://chainscan-galileo.0g.ai/address/0x2fc379c08632792bf701a4d46309004cc103c123) |
 
 A fourth contract lives on the **Sepolia ENS registry** (chain id `11155111`) so each iNFT can claim a permanent `<label>.kiln.eth` subname:
 
