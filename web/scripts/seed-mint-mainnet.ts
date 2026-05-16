@@ -1,18 +1,18 @@
-// Seed-mint ONE marquee Kiln iNFT on Aristotle mainnet so the marketplace
-// isn't empty for judges/visitors. Single coach to keep OG burn low.
+// Seed-mint Kiln iNFTs on Aristotle mainnet.
 //
-// Run AFTER `forge script DeployMainnet.s.sol --broadcast` and after
-// recording the deployed addresses in .env.local (or via env at run time).
+// Default seed set: the four remaining personas from the testnet roster
+// (Alina was minted as iNFT #1 in the first mainnet deploy). Edit MARQUEES
+// below to mint a different set, or pass ONLY_NAMES=Name1,Name2 to filter.
 //
-// Run once:
+// Run:
 //   cd web && pnpm dlx tsx scripts/seed-mint-mainnet.ts
 //
-// Required env:
-//   ZG_RPC_URL                          (default: https://evmrpc.0g.ai)
-//   KILN_OPS_PK                         (ops wallet private key — pays gas + signs envelope)
-//   NEXT_PUBLIC_AGENT_NFT_ADDRESS       (Aristotle KilnAgentNFT address)
-//   NEXT_PUBLIC_KILN_MARKET_ADDRESS     (Aristotle KilnMarket address)
-//   KILN_OPS_ADDRESS                    (address authorized for sessions; usually = ops wallet)
+// Required env (from .env.local):
+//   ZG_RPC_URL                       (default: https://evmrpc.0g.ai)
+//   KILN_OPS_PK                      (ops wallet private key — pays gas + signs envelope)
+//   NEXT_PUBLIC_AGENT_NFT_ADDRESS    (Aristotle KilnAgentNFT)
+//   NEXT_PUBLIC_KILN_MARKET_ADDRESS  (Aristotle KilnMarket)
+//   KILN_OPS_ADDRESS                 (address authorized for sessions; usually = ops wallet)
 
 import { config as loadEnv } from 'dotenv'
 import path from 'node:path'
@@ -27,25 +27,71 @@ import ABIS from '../src/lib/abis'
 import { serializePersona, type Persona } from '../src/lib/persona'
 import { buildPreimageProof, randomNonce } from '../src/lib/attestation'
 
-/// One carefully-chosen marquee coach for the mainnet launch. Pick a
-/// persona that demos well in a single screenshot — clear voice, narrow
-/// expertise, recognizable shape.
-const MARQUEE: Persona & { pricePerSession: string; licensePricePerDay: string } = {
-  name: 'GM Alina Volkov',
-  category: 'Chess',
-  avatar: '',
-  blurb: 'Russian-school grandmaster. Positional play and Capablanca endgames.',
-  systemPrompt: [
-    'You are GM Alina Volkov, a Russian-school chess grandmaster rated 2620.',
-    'Teach with patience. Emphasize positional play, prophylaxis, and Capablanca-style endgames.',
-    'Short paragraphs. Ask one clarifying question per reply when the position is ambiguous.',
-    'Reference classical games (Kasparov vs Karpov 1985 Game 16, Capablanca vs Marshall 1918, Fischer vs Spassky Game 6).',
-    'Never just give the move. Teach the reason.',
-    'When discussing a position, include exactly one [fen <FEN-STRING>] tag in your reply so the UI can render it.',
-  ].join(' '),
-  pricePerSession: '0.001',
-  licensePricePerDay: '0.01',
-}
+type Seed = Persona & { pricePerSession: string; licensePricePerDay: string }
+
+/// Mainnet seed roster. Mirrors web/scripts/seed-mint.ts (testnet) minus
+/// Alina, who was minted as iNFT #1 in the first mainnet deploy.
+const MARQUEES: Seed[] = [
+  {
+    name: 'Coach Vidya Nair',
+    category: 'Wellness',
+    avatar: '',
+    blurb: 'Twenty years teaching Ashtanga yoga in Mysore. Injury-aware sequencing.',
+    systemPrompt: [
+      'You are Vidya, a 20-year Ashtanga teacher trained in Mysore.',
+      'Sequence asanas with attention to breath and body alignment.',
+      'Always ask about injuries or pain before prescribing a sequence.',
+      'Use Sanskrit names with short English glosses.',
+      'Be practical, grounded, and calm.',
+    ].join(' '),
+    pricePerSession: '0.0008',
+    licensePricePerDay: '0.008',
+  },
+  {
+    name: 'Mentor Aarav',
+    category: 'Startup',
+    avatar: '',
+    blurb: 'YC W19 founder turned mentor. Blunt questions, numbers over vibes.',
+    systemPrompt: [
+      'You are Aarav, a YC W19 founder turned mentor.',
+      'You are blunt. Ask brutal one-line follow-ups. Hate vague metrics.',
+      'Always pin the founder to specific numbers (MAUs, retention cohort, burn, runway).',
+      'Quote Paul Graham or Patrick Collison when relevant.',
+      'Keep replies under 120 words.',
+    ].join(' '),
+    pricePerSession: '0.002',
+    licensePricePerDay: '0.02',
+  },
+  {
+    name: 'Teacher Yuki',
+    category: 'Languages',
+    avatar: '',
+    blurb: 'Tokyo-based JLPT N1 instructor. Patient, methodical corrections.',
+    systemPrompt: [
+      'You are Yuki, a Tokyo-based JLPT N1 instructor.',
+      'Correct mistakes gently. Write everything in romaji + kana + kanji.',
+      'When explaining a grammar point, give two example sentences before stating the rule.',
+      'Explain particles like a patient grandparent.',
+    ].join(' '),
+    pricePerSession: '0.0005',
+    licensePricePerDay: '0.005',
+  },
+  {
+    name: 'Prof. Mira Malik',
+    category: 'Math',
+    avatar: '',
+    blurb: 'Olympiad coach and research mathematician. Turns problems into first principles.',
+    systemPrompt: [
+      'You are Professor Mira Malik, a research mathematician and olympiad coach.',
+      'Turn every problem into first principles.',
+      'Prefer small concrete examples over big statements.',
+      'When a student is stuck, ask a leading Socratic question instead of giving the answer.',
+      'Reply in clean steps, numbered when useful.',
+    ].join(' '),
+    pricePerSession: '0.0015',
+    licensePricePerDay: '0.015',
+  },
+]
 
 const GAS = { gasPrice: 5_000_000_000n }
 
@@ -60,6 +106,18 @@ async function main() {
       'missing env: KILN_OPS_PK / NEXT_PUBLIC_AGENT_NFT_ADDRESS / NEXT_PUBLIC_KILN_MARKET_ADDRESS / KILN_OPS_ADDRESS',
     )
   }
+
+  /// Optional filter: ONLY_NAMES="Coach Vidya Nair,Teacher Yuki"
+  const onlyNames = (process.env.ONLY_NAMES ?? '').split(',').map((s) => s.trim()).filter(Boolean)
+  const seeds = onlyNames.length
+    ? MARQUEES.filter((m) => onlyNames.includes(m.name))
+    : MARQUEES
+
+  if (!seeds.length) {
+    console.log('no seeds selected (check ONLY_NAMES filter)')
+    return
+  }
+
   const provider = new ethers.JsonRpcProvider(rpc)
   const wallet = new ethers.Wallet(pk, provider)
 
@@ -79,60 +137,62 @@ async function main() {
   const startBalance = await provider.getBalance(wallet.address)
   console.log(`ops wallet ${wallet.address}`)
   console.log(`chain id   ${chainId}`)
+  console.log(`seeds:     ${seeds.length} (${seeds.map((s) => s.name).join(', ')})`)
   console.log(`start balance: ${ethers.formatEther(startBalance)} OG\n`)
 
-  // 1. Build envelope-shaped proof — the new oracle expects
-  //    abi.encode(bytes32 dataHash, uint256 nonce, uint256 expiry, bytes signature)
-  console.log(`[1/3] ${MARQUEE.name} (${MARQUEE.category})`)
-  const personaJson = serializePersona(MARQUEE)
-  const descriptions = [personaJson]
-  const dataHash = ethers.keccak256(new TextEncoder().encode(personaJson))
-  const expiry = BigInt(Math.floor(Date.now() / 1000) + 5 * 60)
-  const proof = buildPreimageProof(wallet, {
-    dataHash,
-    nonce: randomNonce(),
-    expiry,
-  })
-  const proofs = [proof]
+  for (let i = 0; i < seeds.length; i++) {
+    const seed = seeds[i]
+    console.log(`[${i + 1}/${seeds.length}] ${seed.name} (${seed.category})`)
 
-  const mintTx = await nft.mint(proofs, descriptions, wallet.address, GAS)
-  const mintReceipt = await mintTx.wait()
+    // Build envelope-shaped proof — KilnAttestationOracle expects:
+    //   abi.encode(bytes32 dataHash, uint256 nonce, uint256 expiry, bytes signature)
+    const personaJson = serializePersona(seed)
+    const descriptions = [personaJson]
+    const dataHash = ethers.keccak256(new TextEncoder().encode(personaJson))
+    const expiry = BigInt(Math.floor(Date.now() / 1000) + 5 * 60)
+    const proof = buildPreimageProof(wallet, {
+      dataHash,
+      nonce: randomNonce(),
+      expiry,
+    })
 
-  let tokenId: bigint | null = null
-  for (const log of mintReceipt?.logs ?? []) {
-    try {
-      const parsed = iface.parseLog(log)
-      if (parsed?.name === 'Minted') {
-        tokenId = parsed.args._tokenId as bigint
-        break
-      }
-    } catch {}
+    const mintTx = await nft.mint([proof], descriptions, wallet.address, GAS)
+    const mintReceipt = await mintTx.wait()
+
+    let tokenId: bigint | null = null
+    for (const log of mintReceipt?.logs ?? []) {
+      try {
+        const parsed = iface.parseLog(log)
+        if (parsed?.name === 'Minted') {
+          tokenId = parsed.args._tokenId as bigint
+          break
+        }
+      } catch {}
+    }
+    if (!tokenId) throw new Error('Minted event not found')
+    console.log(`  minted iNFT #${tokenId} · tx ${mintTx.hash.slice(0, 12)}…`)
+
+    // Authorize the ops executor so chat sessions can be served.
+    const authTx = await nft.authorizeUsage(tokenId, executor, GAS)
+    await authTx.wait()
+    console.log(`  authorized ${executor.slice(0, 8)}…${executor.slice(-4)}`)
+
+    // List on the market with the configured prices.
+    const listTx = await market.list(
+      tokenId,
+      ethers.parseEther(seed.pricePerSession),
+      ethers.parseEther(seed.licensePricePerDay),
+      `kiln://persona/${tokenId}`,
+      GAS,
+    )
+    await listTx.wait()
+    console.log(`  listed · ${seed.pricePerSession} OG/session · ${seed.licensePricePerDay} OG/day\n`)
   }
-  if (!tokenId) throw new Error('Minted event not found')
-  console.log(`  minted iNFT #${tokenId} · tx ${mintTx.hash.slice(0, 12)}…`)
-
-  // 2. Authorize the ops executor so chat sessions can be served.
-  console.log(`[2/3] authorizing executor`)
-  const authTx = await nft.authorizeUsage(tokenId, executor, GAS)
-  await authTx.wait()
-  console.log(`  authorized ${executor.slice(0, 8)}…${executor.slice(-4)}`)
-
-  // 3. List on the market with the configured prices.
-  console.log(`[3/3] listing on market`)
-  const listTx = await market.list(
-    tokenId,
-    ethers.parseEther(MARQUEE.pricePerSession),
-    ethers.parseEther(MARQUEE.licensePricePerDay),
-    `kiln://persona/${tokenId}`,
-    GAS,
-  )
-  await listTx.wait()
-  console.log(`  listed · ${MARQUEE.pricePerSession} OG/session · ${MARQUEE.licensePricePerDay} OG/day\n`)
 
   const endBalance = await provider.getBalance(wallet.address)
   console.log(`end balance:   ${ethers.formatEther(endBalance)} OG`)
   console.log(`gas consumed:  ${ethers.formatEther(startBalance - endBalance)} OG`)
-  console.log(`\nmainnet seed complete. iNFT #${tokenId} is live at /chat/${tokenId} once Vercel picks up the new env vars.`)
+  console.log(`\nmainnet seed complete. refresh /market to see the new coaches.`)
 }
 
 main().catch((e) => {
