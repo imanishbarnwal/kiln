@@ -125,7 +125,7 @@ export default function ExportsPage() {
               textAlign: 'right',
             }}
           >
-            Workshop · Galileo 16602
+            Workshop · Aristotle 16661
           </div>
 
           {/* Center · logo + wordmark + tagline */}

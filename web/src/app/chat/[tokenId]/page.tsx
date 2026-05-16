@@ -119,7 +119,7 @@ export default function ChatPage({ params }: { params: Promise<{ tokenId: string
     !!wallet?.address &&
     owner.toLowerCase() === wallet.address.toLowerCase()
 
-  async function ensureGalileo() {
+  async function ensureTargetChain() {
     if (!wallet) throw new Error('No wallet')
     if (Number(wallet.chainId.split(':').pop()) !== targetChain.id) {
       await wallet.switchChain(targetChain.id)
@@ -127,7 +127,7 @@ export default function ChatPage({ params }: { params: Promise<{ tokenId: string
   }
 
   async function walletMarket() {
-    await ensureGalileo()
+    await ensureTargetChain()
     const eip = await wallet!.getEthereumProvider()
     const bp = new ethers.BrowserProvider(eip as any)
     const signer = await bp.getSigner()

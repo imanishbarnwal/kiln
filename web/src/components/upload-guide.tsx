@@ -128,7 +128,7 @@ export function UploadGuide() {
               persona lives in the system prompt you type above; the uploaded
               files are committed on chain for tamper-evidence and will power
               on-chain fine-tuning in the next release (0G Compute fine-tune,
-              currently in testnet beta). You always own the encryption key,
+              currently maturing). You always own the encryption key,
               and you can revoke access by transferring the iNFT.
             </p>
           </div>

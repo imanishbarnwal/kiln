@@ -15,7 +15,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ethers } from 'ethers'
 import { ABIS, ADDRESSES } from '@/lib/contracts'
-import { READ_RPC_URL, targetChain } from '@/lib/chains'
+import { READ_RPC_URL, targetChain, NETWORK_LABEL } from '@/lib/chains'
 import type { Persona } from '@/lib/persona'
 import { EnsName } from '@/components/ens-name'
 
@@ -88,7 +88,7 @@ export function IntelligencePanel({ tokenId, persona }: Props) {
                 ? 'Verifying on-chain…'
                 : onChain
                   ? `Data hash ${onChain.dataHash.slice(0, 10)}… committed to iNFT #${tokenId} · tamper-evident.`
-                  : `Verified iNFT #${tokenId} on Galileo.`}
+                  : `Verified iNFT #${tokenId} on ${targetChain.name}.`}
             </div>
           </div>
         </div>
@@ -137,7 +137,7 @@ export function IntelligencePanel({ tokenId, persona }: Props) {
               >
                 {ADDRESSES.KilnAgentNFT}
               </a>
-              <span className="text-[var(--kiln-fg-2)]">#{tokenId} · Galileo</span>
+              <span className="text-[var(--kiln-fg-2)]">#{tokenId} · {NETWORK_LABEL}</span>
             </Field>
             {onChain && (
               <>
@@ -163,7 +163,7 @@ export function IntelligencePanel({ tokenId, persona }: Props) {
                 </Field>
                 <Field label="Storage backend">
                   <span className="font-mono text-[var(--kiln-fg-1)]">
-                    @0gfoundation/0g-ts-sdk · Galileo
+                    @0gfoundation/0g-ts-sdk · {NETWORK_LABEL}
                   </span>
                   <span className="text-[var(--kiln-fg-2)]">Encrypted artifact · AES-256-GCM</span>
                 </Field>

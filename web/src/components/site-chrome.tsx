@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { WalletButton } from '@/components/wallet-button'
 import { LogoStampFlame } from '@/components/logo-concepts'
+import { NETWORK_LABEL, targetChain } from '@/lib/chains'
 
 export function SiteNav() {
   const pathname = usePathname()
@@ -150,7 +151,7 @@ export function SiteFooter() {
         <div className="space-y-2 md:text-right">
           <div className="kiln-label">Workshop</div>
           <ul className="text-[var(--kiln-fg-1)] space-y-1 font-mono text-xs">
-            <li>Galileo · chainId 16602</li>
+            <li>{NETWORK_LABEL} · chainId {targetChain.id}</li>
             <li>
               <a
                 href={repoUrl}

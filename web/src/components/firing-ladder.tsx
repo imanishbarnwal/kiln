@@ -15,6 +15,7 @@
 ///     + kiln-stamp + kiln-rule) without adding any new visual vocabulary
 
 import type { ComponentProps } from 'react'
+import { NETWORK_LABEL, targetChain } from '@/lib/chains'
 
 export type FiringPhase =
   | 'idle'
@@ -26,7 +27,7 @@ export type FiringPhase =
   | 'done'
 
 const PHASES: { key: Exclude<FiringPhase, 'idle' | 'done'>; label: string; sub?: string }[] = [
-  { key: 'switching', label: 'Switch network', sub: 'Galileo · chainId 16602' },
+  { key: 'switching', label: 'Switch network', sub: `${NETWORK_LABEL} · chainId ${targetChain.id}` },
   { key: 'encrypting', label: 'Seal artifact', sub: 'AES-256-GCM in your browser' },
   { key: 'uploading', label: 'Load into the chamber', sub: '0G Storage · encrypted blob' },
   { key: 'indexing', label: 'Index notes for retrieval', sub: 'BM25 manifest · plaintext chunks' },
