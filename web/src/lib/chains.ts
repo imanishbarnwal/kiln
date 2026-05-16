@@ -23,3 +23,13 @@ export const aristotle = defineChain({
 
 export const targetChain =
   process.env.NEXT_PUBLIC_NETWORK === 'mainnet' ? aristotle : galileo
+
+/// Canonical read-RPC URL for the configured network. Use this in every
+/// `new ethers.JsonRpcProvider(...)` instead of hardcoding a URL — otherwise
+/// pages keep querying testnet even when NEXT_PUBLIC_NETWORK=mainnet.
+export const READ_RPC_URL = targetChain.rpcUrls.default.http[0]
+
+/// Short label for the configured network. Used in catalog chips so users
+/// can see at a glance whether they're looking at testnet or mainnet.
+export const NETWORK_LABEL =
+  targetChain.id === 16661 ? 'Mainnet · Aristotle' : 'Testnet · Galileo'

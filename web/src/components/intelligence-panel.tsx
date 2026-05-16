@@ -15,6 +15,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ethers } from 'ethers'
 import { ABIS, ADDRESSES } from '@/lib/contracts'
+import { READ_RPC_URL, targetChain } from '@/lib/chains'
 import type { Persona } from '@/lib/persona'
 import { EnsName } from '@/components/ens-name'
 
@@ -33,7 +34,7 @@ export function IntelligencePanel({ tokenId, persona }: Props) {
   const [loading, setLoading] = useState(false)
 
   const readProvider = useMemo(
-    () => new ethers.JsonRpcProvider('https://evmrpc-testnet.0g.ai'),
+    () => new ethers.JsonRpcProvider(READ_RPC_URL),
     [],
   )
 
@@ -67,7 +68,7 @@ export function IntelligencePanel({ tokenId, persona }: Props) {
     return () => { cancelled = true }
   }, [tokenId, readProvider])
 
-  const explorerBase = 'https://chainscan-galileo.0g.ai'
+  const explorerBase = targetChain.blockExplorers.default.url
 
   return (
     <div className="mt-6 border border-[var(--kiln-border-soft)] rounded-sm bg-[var(--kiln-bg-1)]/60">

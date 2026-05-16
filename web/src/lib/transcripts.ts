@@ -5,6 +5,8 @@
 /// not browser/device changes. Layer 2 (encrypted backup to 0G Storage
 /// keyed by a wallet signature) is on the roadmap.
 
+import { targetChain } from './chains'
+
 export type TranscriptMsg = {
   role: 'user' | 'assistant'
   content: string
@@ -141,10 +143,10 @@ export function transcriptToMarkdown(t: Transcript): string {
   lines.push(`- **Started:** ${dateStr} ${timeStr}`)
   if (durationMin) lines.push(`- **Duration:** ~${durationMin} min`)
   if (t.payTx) {
-    lines.push(`- **Payment tx:** [\`${t.payTx}\`](https://chainscan-galileo.0g.ai/tx/${t.payTx})`)
+    lines.push(`- **Payment tx:** [\`${t.payTx}\`](${targetChain.blockExplorers.default.url}/tx/${t.payTx})`)
   }
   if (t.settleTx) {
-    lines.push(`- **Settlement tx:** [\`${t.settleTx}\`](https://chainscan-galileo.0g.ai/tx/${t.settleTx})`)
+    lines.push(`- **Settlement tx:** [\`${t.settleTx}\`](${targetChain.blockExplorers.default.url}/tx/${t.settleTx})`)
   }
   lines.push('')
   lines.push('---')
@@ -167,7 +169,7 @@ export function transcriptToMarkdown(t: Transcript): string {
 
   lines.push('---')
   lines.push('')
-  lines.push(`Generated from Kiln. Verify on chain at https://chainscan-galileo.0g.ai`)
+  lines.push(`Generated from Kiln. Verify on chain at ${targetChain.blockExplorers.default.url}`)
   return lines.join('\n')
 }
 

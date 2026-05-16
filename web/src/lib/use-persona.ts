@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ethers } from 'ethers'
 import { ABIS, ADDRESSES } from './contracts'
+import { READ_RPC_URL } from './chains'
 import { resolvePersona, type Persona } from './persona'
 
 const CACHE = new Map<string, Persona>()
@@ -22,7 +23,7 @@ export function usePersona(tokenId: string | number | bigint | null | undefined)
   const [loading, setLoading] = useState(false)
 
   const readProvider = useMemo(
-    () => new ethers.JsonRpcProvider('https://evmrpc-testnet.0g.ai'),
+    () => new ethers.JsonRpcProvider(READ_RPC_URL),
     [],
   )
 
@@ -63,7 +64,7 @@ export function usePersona(tokenId: string | number | bigint | null | undefined)
 export async function readPersonasBatch(
   tokenIds: (string | bigint)[],
 ): Promise<Record<string, Persona>> {
-  const readProvider = new ethers.JsonRpcProvider('https://evmrpc-testnet.0g.ai')
+  const readProvider = new ethers.JsonRpcProvider(READ_RPC_URL)
   const nft = new ethers.Contract(
     ADDRESSES.KilnAgentNFT,
     ABIS.KilnAgentNFT as any,

@@ -14,7 +14,7 @@ import { UploadGuide } from '@/components/upload-guide'
 import { FiringLadder } from '@/components/firing-ladder'
 import { generateKey, exportKey, encrypt, sha256Hex } from '@/lib/encryption'
 import { ABIS, ADDRESSES } from '@/lib/contracts'
-import { galileo } from '@/lib/chains'
+import { targetChain } from '@/lib/chains'
 import { serializePersona, type Persona } from '@/lib/persona'
 import { chunkText, type RagManifest } from '@/lib/rag'
 
@@ -64,9 +64,9 @@ export default function OnboardPage() {
 
     setRagChunkCount(null)
     try {
-      if (Number(wallet.chainId.split(':').pop()) !== galileo.id) {
+      if (Number(wallet.chainId.split(':').pop()) !== targetChain.id) {
         setPhase('switching')
-        await wallet.switchChain(galileo.id)
+        await wallet.switchChain(targetChain.id)
       }
 
       setPhase('encrypting')
@@ -305,7 +305,7 @@ export default function OnboardPage() {
               <div>
                 <span className="kiln-label mr-3">Mint tx</span>
                 <a
-                  href={`https://chainscan-galileo.0g.ai/tx/${txHash}`}
+                  href={`${targetChain.blockExplorers.default.url}/tx/${txHash}`}
                   target="_blank"
                   rel="noreferrer"
                   className="text-[var(--kiln-ember-hot)] hover:text-[var(--kiln-ember)] underline-offset-2 hover:underline break-all"

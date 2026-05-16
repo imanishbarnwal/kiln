@@ -8,6 +8,7 @@ import { SiteNav, SiteFooter } from '@/components/site-chrome'
 import { KilnAvatar } from '@/components/kiln-avatar'
 import { RepBadge } from '@/components/rep-badge'
 import { ABIS, ADDRESSES } from '@/lib/contracts'
+import { READ_RPC_URL, NETWORK_LABEL } from '@/lib/chains'
 import { readPersonasBatch } from '@/lib/use-persona'
 import { useReputationBatch } from '@/lib/use-reputation'
 import { subnameForToken, KILN_ENS_PARENT } from '@/lib/kiln-ens'
@@ -31,7 +32,7 @@ export default function MarketPage() {
   const [loading, setLoading] = useState(true)
 
   const readProvider = useMemo(
-    () => new ethers.JsonRpcProvider('https://evmrpc-testnet.0g.ai'),
+    () => new ethers.JsonRpcProvider(READ_RPC_URL),
     [],
   )
 
@@ -130,7 +131,7 @@ export default function MarketPage() {
             />
             <div className="flex items-center justify-between kiln-stamp">
               <span>{listings.length.toString().padStart(3, '0')} entries on chain</span>
-              <span>Testnet · Galileo</span>
+              <span>{NETWORK_LABEL}</span>
             </div>
           </div>
         </div>

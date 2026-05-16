@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { SiteNav, SiteFooter } from '@/components/site-chrome'
+import { NETWORK_LABEL, targetChain } from '@/lib/chains'
 
 export default function Home() {
   return (
@@ -73,7 +74,7 @@ export default function Home() {
             </Button>
           </Link>
           <span className="kiln-stamp ml-4 hidden md:inline">
-            Testnet live · Galileo 16602
+            Live · {NETWORK_LABEL} · {targetChain.id}
           </span>
         </div>
 

@@ -27,6 +27,7 @@ import { SiteNav, SiteFooter } from '@/components/site-chrome'
 import { Button } from '@/components/ui/button'
 import { KilnAvatar } from '@/components/kiln-avatar'
 import { ABIS, ADDRESSES } from '@/lib/contracts'
+import { READ_RPC_URL } from '@/lib/chains'
 import { readPersonasBatch } from '@/lib/use-persona'
 import type { Persona } from '@/lib/persona'
 
@@ -70,7 +71,7 @@ export default function CouncilPage() {
   const [phase, setPhase] = useState<'idle' | 'inference' | 'mesh' | 'synthesis' | 'done'>('idle')
 
   const readProvider = useMemo(
-    () => new ethers.JsonRpcProvider('https://evmrpc-testnet.0g.ai'),
+    () => new ethers.JsonRpcProvider(READ_RPC_URL),
     [],
   )
 

@@ -40,10 +40,10 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: 'signature does not match claimant' }, { status: 401 })
     }
 
-    // 2. confirm claimant owns the iNFT on Galileo
-    const galileoRpc = process.env.ZG_RPC_URL ?? 'https://evmrpc-testnet.0g.ai'
-    const galileo = new ethers.JsonRpcProvider(galileoRpc)
-    const nft = new ethers.Contract(ADDRESSES.KilnAgentNFT, ABIS.KilnAgentNFT as any, galileo)
+    // 2. confirm claimant owns the iNFT on the active 0G chain (testnet or mainnet)
+    const zgRpc = process.env.ZG_RPC_URL ?? 'https://evmrpc.0g.ai'
+    const zgProvider = new ethers.JsonRpcProvider(zgRpc)
+    const nft = new ethers.Contract(ADDRESSES.KilnAgentNFT, ABIS.KilnAgentNFT as any, zgProvider)
     const owner: string = await nft.ownerOf(BigInt(tokenIdStr))
     if (owner.toLowerCase() !== claimant.toLowerCase()) {
       return Response.json({ error: 'claimant is not the iNFT owner' }, { status: 403 })

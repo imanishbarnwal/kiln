@@ -3,13 +3,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ethers } from 'ethers'
 import { readReputationFor, type Reputation } from './reputation'
+import { READ_RPC_URL } from './chains'
 
 export function useReputationBatch(tokenIds: (string | bigint | number)[]) {
   const [map, setMap] = useState<Record<string, Reputation>>({})
   const [loading, setLoading] = useState(false)
 
   const provider = useMemo(
-    () => new ethers.JsonRpcProvider('https://evmrpc-testnet.0g.ai'),
+    () => new ethers.JsonRpcProvider(READ_RPC_URL),
     [],
   )
 

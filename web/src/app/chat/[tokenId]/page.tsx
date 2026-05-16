@@ -21,7 +21,7 @@ import {
 } from '@/components/session-timer'
 import { useReputation } from '@/lib/use-reputation'
 import { ABIS, ADDRESSES } from '@/lib/contracts'
-import { galileo } from '@/lib/chains'
+import { targetChain, READ_RPC_URL } from '@/lib/chains'
 import { usePersona } from '@/lib/use-persona'
 import { looksLikeKilnSubname, tokenForSubname, subnameForToken } from '@/lib/kiln-ens'
 
@@ -76,7 +76,7 @@ export default function ChatPage({ params }: { params: Promise<{ tokenId: string
   const tokenId = resolvedTokenId ?? '0'
 
   const readProvider = useMemo(
-    () => new ethers.JsonRpcProvider('https://evmrpc-testnet.0g.ai'),
+    () => new ethers.JsonRpcProvider(READ_RPC_URL),
     [],
   )
   const { persona } = usePersona(tokenId)
@@ -121,8 +121,8 @@ export default function ChatPage({ params }: { params: Promise<{ tokenId: string
 
   async function ensureGalileo() {
     if (!wallet) throw new Error('No wallet')
-    if (Number(wallet.chainId.split(':').pop()) !== galileo.id) {
-      await wallet.switchChain(galileo.id)
+    if (Number(wallet.chainId.split(':').pop()) !== targetChain.id) {
+      await wallet.switchChain(targetChain.id)
     }
   }
 
@@ -392,7 +392,7 @@ export default function ChatPage({ params }: { params: Promise<{ tokenId: string
                   <div className="text-xs font-mono text-[var(--kiln-fg-2)] truncate">
                     <span className="kiln-label mr-2">Payment</span>
                     <a
-                      href={`https://chainscan-galileo.0g.ai/tx/${payTx}`}
+                      href={`${targetChain.blockExplorers.default.url}/tx/${payTx}`}
                       target="_blank"
                       rel="noreferrer"
                       className="text-[var(--kiln-ember-hot)] hover:underline underline-offset-2 break-all"

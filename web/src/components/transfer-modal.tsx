@@ -14,7 +14,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ABIS, ADDRESSES } from '@/lib/contracts'
-import { galileo } from '@/lib/chains'
+import { targetChain } from '@/lib/chains'
 import { resolveAddress, resolveName, shortAddress } from '@/lib/ens'
 
 export function TransferModal({
@@ -85,8 +85,8 @@ export function TransferModal({
     setTxHash(null)
     try {
       // Switch chain if needed.
-      if (Number(wallet.chainId.split(':').pop()) !== galileo.id) {
-        await wallet.switchChain(galileo.id)
+      if (Number(wallet.chainId.split(':').pop()) !== targetChain.id) {
+        await wallet.switchChain(targetChain.id)
       }
 
       // Build proof bytes (server has the sender's legacy secret in production;
@@ -197,7 +197,7 @@ export function TransferModal({
           <div className="text-xs font-mono text-[var(--kiln-fg-2)] break-all pt-2">
             <span className="kiln-label mr-2">tx</span>
             <a
-              href={`https://chainscan-galileo.0g.ai/tx/${txHash}`}
+              href={`${targetChain.blockExplorers.default.url}/tx/${txHash}`}
               target="_blank"
               rel="noreferrer"
               className="text-[var(--kiln-ember-hot)] hover:underline"

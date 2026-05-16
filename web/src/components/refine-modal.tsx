@@ -25,7 +25,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ABIS, ADDRESSES } from '@/lib/contracts'
-import { galileo } from '@/lib/chains'
+import { targetChain, READ_RPC_URL } from '@/lib/chains'
 import { resolvePersona, serializePersona, type Persona } from '@/lib/persona'
 import { invalidatePersonaCache } from '@/lib/use-persona'
 
@@ -62,7 +62,7 @@ export function RefineModal({ tokenId, open, onClose, onRefined }: Props) {
     setTxHash(null)
     ;(async () => {
       try {
-        const provider = new ethers.JsonRpcProvider('https://evmrpc-testnet.0g.ai')
+        const provider = new ethers.JsonRpcProvider(READ_RPC_URL)
         const nft = new ethers.Contract(ADDRESSES.KilnAgentNFT, ABIS.KilnAgentNFT as any, provider)
         const descs: string[] = await nft.dataDescriptionsOf(tokenId)
         const persona = resolvePersona(tokenId.toString(), descs)
@@ -88,8 +88,8 @@ export function RefineModal({ tokenId, open, onClose, onRefined }: Props) {
     setBusy(true)
     setTxHash(null)
     try {
-      if (Number(wallet.chainId.split(':').pop()) !== galileo.id) {
-        await wallet.switchChain(galileo.id)
+      if (Number(wallet.chainId.split(':').pop()) !== targetChain.id) {
+        await wallet.switchChain(targetChain.id)
       }
 
       // Build the new persona JSON
@@ -237,7 +237,7 @@ export function RefineModal({ tokenId, open, onClose, onRefined }: Props) {
           <div className="text-xs font-mono text-[var(--kiln-fg-2)] break-all pt-2">
             <span className="kiln-label mr-2">tx</span>
             <a
-              href={`https://chainscan-galileo.0g.ai/tx/${txHash}`}
+              href={`${targetChain.blockExplorers.default.url}/tx/${txHash}`}
               target="_blank"
               rel="noreferrer"
               className="text-[var(--kiln-ember-hot)] hover:underline"

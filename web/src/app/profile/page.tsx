@@ -15,6 +15,7 @@ import { ClaimSubnameModal } from '@/components/claim-subname-modal'
 import { SessionTimer, DEFAULT_SESSION_SECONDS } from '@/components/session-timer'
 import { RepBadge } from '@/components/rep-badge'
 import { ABIS, ADDRESSES } from '@/lib/contracts'
+import { READ_RPC_URL } from '@/lib/chains'
 import { readPersonasBatch } from '@/lib/use-persona'
 import { readActiveSessionsFor, type ActiveSession } from '@/lib/active-sessions'
 import { useReputationBatch } from '@/lib/use-reputation'
@@ -47,7 +48,7 @@ export default function ProfilePage() {
   const [claimTokenId, setClaimTokenId] = useState<bigint | null>(null)
 
   const readProvider = useMemo(
-    () => new ethers.JsonRpcProvider('https://evmrpc-testnet.0g.ai'),
+    () => new ethers.JsonRpcProvider(READ_RPC_URL),
     [],
   )
 

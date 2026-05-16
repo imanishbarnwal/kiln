@@ -14,7 +14,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ABIS, ADDRESSES } from '@/lib/contracts'
-import { galileo } from '@/lib/chains'
+import { targetChain } from '@/lib/chains'
 
 export function ListModal({
   tokenId,
@@ -65,8 +65,8 @@ export function ListModal({
 
     setBusy(true)
     try {
-      if (Number(wallet.chainId.split(':').pop()) !== galileo.id) {
-        await wallet.switchChain(galileo.id)
+      if (Number(wallet.chainId.split(':').pop()) !== targetChain.id) {
+        await wallet.switchChain(targetChain.id)
       }
       const eip = await wallet.getEthereumProvider()
       const bp = new ethers.BrowserProvider(eip as any)
